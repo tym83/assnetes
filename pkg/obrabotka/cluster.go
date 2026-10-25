@@ -357,6 +357,13 @@ func statusJSON(v bsl.Value) string {
 }
 
 func plainCopy(v bsl.Value) bsl.Value {
+	if l, ok := v.(interface{ IsList() bool }); ok && l.IsList() {
+		a := bsl.NewArray()
+		for _, e := range v.(bsl.Iterable).Items() {
+			a.Elems = append(a.Elems, plainCopy(e))
+		}
+		return a
+	}
 	if e, ok := v.(interface {
 		Entries() ([]string, []bsl.Value)
 	}); ok {
@@ -366,6 +373,29 @@ func plainCopy(v bsl.Value) bsl.Value {
 			m.Insert(k, plainCopy(vals[i]))
 		}
 		return m
+	}
+	if s, ok := v.(*bsl.Structure); ok {
+		m := bsl.NewMap()
+		for _, k := range s.Keys() {
+			x, _ := s.Get(k)
+			m.Insert(k, plainCopy(x))
+		}
+		return m
+	}
+	if mp, ok := v.(*bsl.Map); ok {
+		m := bsl.NewMap()
+		for _, k := range mp.Keys() {
+			x, _ := mp.Lookup(k)
+			m.Insert(k, plainCopy(x))
+		}
+		return m
+	}
+	if a, ok := v.(*bsl.Array); ok {
+		out := bsl.NewArray()
+		for _, e := range a.Elems {
+			out.Elems = append(out.Elems, plainCopy(e))
+		}
+		return out
 	}
 	if l, ok := v.(*manifest.List); ok {
 		a := bsl.NewArray()

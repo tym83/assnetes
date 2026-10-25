@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	_ "time/tzdata"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -16,12 +17,14 @@ import (
 )
 
 func main() {
-	var leader bool
+	var leader, webhooks bool
 	var metrics, probes, id, whAddr, whService, whNamespace string
 	flag.BoolVar(&leader, "monopolnyj-rezhim", true, "монопольный режим: работает один экземпляр, остальные ждут (leader election)")
 	flag.StringVar(&metrics, "metrics", ":8080", "адрес метрик")
 	flag.StringVar(&probes, "probes", ":8081", "адрес проб живости и готовности")
 	flag.StringVar(&id, "id", "obrabotchik", "имя блокировки монопольного режима")
+	flag.BoolVar(&obrabotka.RunScheduleAtStart, "srazu", false, "выполнить регламентные задания сразу при старте")
+	flag.BoolVar(&webhooks, "proverki", true, "проверки заполнения (admission webhooks)")
 	flag.StringVar(&whAddr, "webhook-addr", ":9443", "адрес проверок заполнения")
 	flag.StringVar(&whService, "service", "", "Service обработчика: через него API-сервер зовёт проверки заполнения")
 	flag.StringVar(&whNamespace, "namespace", os.Getenv("POD_NAMESPACE"), "подразделение обработчика")
@@ -65,7 +68,9 @@ func main() {
 		runners = append(runners, r)
 		log.Info("обработка подключена", "обработка", ob.Name, "вид", ob.Kind.String(), "регламентных", len(ob.Schedule))
 	}
-	if err := obrabotka.SetupWebhooks(mgr, runners, obrabotka.WebhookOptions{Addr: whAddr, Service: whService, Namespace: whNamespace}); err != nil {
+	if !webhooks {
+		log.Info("проверки заполнения выключены")
+	} else if err := obrabotka.SetupWebhooks(mgr, runners, obrabotka.WebhookOptions{Addr: whAddr, Service: whService, Namespace: whNamespace}); err != nil {
 		log.Error(err, "проверки заполнения не подключены")
 		os.Exit(1)
 	}

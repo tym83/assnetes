@@ -187,6 +187,35 @@ func registerStdlib(it *Interp) {
 		}
 		return ToString(Arg(args, 0)), nil
 	}, "XMLСтрока", "XMLString")
+	it.Define(func(_ *Interp, args []*Ref) (Value, error) {
+		t, _ := Arg(args, 0).(TypeValue)
+		s := strings.TrimSpace(str(args, 1))
+		switch norm(t.Name) {
+		case "дата", "date":
+			for _, layout := range []string{time.RFC3339Nano, "2006-01-02T15:04:05", "2006-01-02"} {
+				if d, err := time.Parse(layout, s); err == nil {
+					return time.Date(d.Year(), d.Month(), d.Day(), d.Hour(), d.Minute(), d.Second(), 0, time.UTC), nil
+				}
+			}
+			if s == "" {
+				return emptyDate, nil
+			}
+		case "число", "number":
+			if n, err := ParseNumber(s); err == nil {
+				return n, nil
+			}
+		case "булево", "boolean":
+			switch s {
+			case "true", "1":
+				return true, nil
+			case "false", "0":
+				return false, nil
+			}
+		case "строка", "string":
+			return s, nil
+		}
+		return nil, fmt.Errorf("Ошибка преобразования данных XDTO: «%s» не %s", s, t.Name)
+	}, "XMLЗначение", "XMLValue")
 
 	// Strings
 	it.Define(func(_ *Interp, args []*Ref) (Value, error) {
@@ -468,6 +497,22 @@ func splitAny(s, seps string) []string {
 func registerDates(it *Interp) {
 	it.Define(func(it *Interp, _ []*Ref) (Value, error) { return localNow(it), nil }, "ТекущаяДата", "CurrentDate")
 	it.Define(func(it *Interp, _ []*Ref) (Value, error) { return localNow(it), nil }, "ТекущаяДатаСеанса", "CurrentSessionDate")
+	it.Define(func(it *Interp, args []*Ref) (Value, error) {
+		t, err := date(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		zone := str(args, 1)
+		if zone == "" {
+			zone = "Europe/Moscow"
+		}
+		loc, err := time.LoadLocation(zone)
+		if err != nil {
+			return nil, fmt.Errorf("Неизвестный часовой пояс (%s)", zone)
+		}
+		l := time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, time.UTC).In(loc)
+		return time.Date(l.Year(), l.Month(), l.Day(), l.Hour(), l.Minute(), l.Second(), 0, time.UTC), nil
+	}, "МестноеВремя", "ToLocalTime")
 	it.Define(func(it *Interp, _ []*Ref) (Value, error) {
 		n := it.Now().UTC()
 		return time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), n.Minute(), n.Second(), 0, time.UTC), nil

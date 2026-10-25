@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
@@ -46,12 +45,15 @@ func InstallKinds(ctx context.Context, cfg *rest.Config, ob *Obrabotka) error {
 			return fmt.Errorf("вид «%s» не установлен: %w", d.Ru, err)
 		}
 		err = wait.PollUntilContextTimeout(ctx, time.Second, time.Minute, true, func(ctx context.Context) (bool, error) {
-			crd := &apiextensionsv1.CustomResourceDefinition{}
+			crd := &unstructured.Unstructured{}
+			crd.SetGroupVersionKind(u.GroupVersionKind())
 			if err := c.Get(ctx, client.ObjectKey{Name: u.GetName()}, crd); err != nil {
 				return false, nil
 			}
-			for _, cond := range crd.Status.Conditions {
-				if cond.Type == apiextensionsv1.Established && cond.Status == apiextensionsv1.ConditionTrue {
+			conds, _, _ := unstructured.NestedSlice(crd.Object, "status", "conditions")
+			for _, cond := range conds {
+				m, _ := cond.(map[string]any)
+				if m["type"] == "Established" && m["status"] == "True" {
 					return true, nil
 				}
 			}

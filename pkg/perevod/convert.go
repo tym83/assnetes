@@ -10,6 +10,9 @@ import (
 
 // entries lists the keys and values of a Структура or Соответствие in order.
 func entries(v bsl.Value) ([]string, []bsl.Value, bool) {
+	if l, ok := v.(interface{ IsList() bool }); ok && l.IsList() {
+		return nil, nil, false
+	}
 	switch x := v.(type) {
 	case *bsl.Structure:
 		keys := x.Keys()
@@ -193,6 +196,9 @@ func (w *walk) value(path, field string, v bsl.Value) bsl.Value {
 			key := k
 			if field != "data" && field != "stringData" && field != "binaryData" {
 				key = AnnotationKey(k)
+			} else if !isConfigKey(k) {
+				key = configKey(k)
+				w.names[key] = k
 			}
 			if s, ok := val.(string); ok && (field == "matchLabels" || field == "nodeSelector" || field == "selector") {
 				val = LabelValue(s)
@@ -207,6 +213,30 @@ func (w *walk) value(path, field string, v bsl.Value) bsl.Value {
 		out.Insert(en, w.value(path+"."+en, en, vals[i]))
 	}
 	return out
+}
+
+// isConfigKey reports whether k can be a key of the data of a ConfigMap or
+// a Secret as it is.
+func isConfigKey(k string) bool {
+	if k == "" {
+		return false
+	}
+	for _, r := range k {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_' || r == '.') {
+			return false
+		}
+	}
+	return true
+}
+
+// configKey transliterates a data key, keeping its extension: «настройки.bsl»
+// becomes «nastrojki.bsl».
+func configKey(k string) string {
+	base, ext := k, ""
+	if i := strings.LastIndex(k, "."); i > 0 && isConfigKey(k[i:]) {
+		base, ext = k[:i], k[i:]
+	}
+	return Translit(base) + ext
 }
 
 func isNameField(field string) bool {
@@ -411,6 +441,12 @@ func (r *reverse) value(kind, path, field string, v bsl.Value) bsl.Value {
 		case labelLike:
 			rk, rv := r.label(k, vals[i])
 			out.Insert(rk, rv)
+		case field == "data" || field == "stringData" || field == "binaryData":
+			key := k
+			if orig, ok := r.names[k]; ok {
+				key = orig
+			}
+			out.Insert(key, plain(vals[i]))
 		case freeFormFields[field]:
 			out.Insert(AnnotationKeyRu(k), plain(vals[i]))
 		default:

@@ -31,7 +31,13 @@ type Object struct {
 	order    []string
 	names    map[string]string
 	vals     map[string]bsl.Value
+	// an unknown field that got Добавить() before any property becomes a list
+	isList bool
+	elems  []bsl.Value
 }
+
+// IsList reports whether the object turned out to be a list.
+func (o *Object) IsList() bool { return o.isList }
 
 func NewObject(typeName string) *Object {
 	return &Object{typeName: typeName, names: map[string]string{}, vals: map[string]bsl.Value{}}
@@ -39,7 +45,23 @@ func NewObject(typeName string) *Object {
 
 func (o *Object) TypeName() string { return o.typeName }
 
-func (o *Object) Count() int { return len(o.order) }
+// Count counts the fields that hold something.
+func (o *Object) Count() int {
+	if o.isList {
+		return len(o.elems)
+	}
+	keys, _ := o.Entries()
+	return len(keys)
+}
+
+// String is how the object reads as a string: nothing, when nothing was
+// written into it, as with a реквизит nobody filled.
+func (o *Object) String() string {
+	if o.Count() == 0 {
+		return ""
+	}
+	return o.typeName
+}
 
 func (o *Object) put(name string, v bsl.Value) {
 	k := fold(name)
@@ -70,6 +92,14 @@ func (o *Object) Set(name string, v bsl.Value) error {
 }
 
 func (o *Object) GetIndex(k bsl.Value) (bsl.Value, error) {
+	if o.isList {
+		n, _ := k.(bsl.Number)
+		i := int(n.Int64())
+		if i < 0 || i >= len(o.elems) {
+			return nil, fmt.Errorf("Индекс находится за границами диапазона")
+		}
+		return o.elems[i], nil
+	}
 	v, _ := o.Get(bsl.ToString(k))
 	return v, nil
 }
@@ -78,6 +108,9 @@ func (o *Object) SetIndex(k, v bsl.Value) error { return o.Set(bsl.ToString(k), 
 
 // Entries lists the fields that hold something.
 func (o *Object) Entries() ([]string, []bsl.Value) {
+	if o.isList {
+		return nil, nil
+	}
 	var keys []string
 	var vals []bsl.Value
 	for _, k := range o.order {
@@ -94,6 +127,9 @@ func (o *Object) Entries() ([]string, []bsl.Value) {
 func empty(v bsl.Value) bool {
 	switch x := v.(type) {
 	case *Object:
+		if x.isList {
+			return len(x.elems) == 0
+		}
 		keys, _ := x.Entries()
 		return len(keys) == 0
 	case *List:
@@ -105,6 +141,9 @@ func empty(v bsl.Value) bool {
 }
 
 func (o *Object) Items() []bsl.Value {
+	if o.isList {
+		return append([]bsl.Value(nil), o.elems...)
+	}
 	keys, vals := o.Entries()
 	out := make([]bsl.Value, len(keys))
 	for i := range keys {
@@ -115,6 +154,18 @@ func (o *Object) Items() []bsl.Value {
 
 func (o *Object) CallMethod(_ *bsl.Interp, name string, args []*bsl.Ref) (bsl.Value, error) {
 	switch fold(name) {
+	case "добавить", "add":
+		if !o.isList && len(o.order) > 0 {
+			return nil, fmt.Errorf("Метод объекта не обнаружен (%s): это не список", name)
+		}
+		o.isList = true
+		if bsl.Has(args, 0) {
+			o.elems = append(o.elems, bsl.Arg(args, 0))
+			return nil, nil
+		}
+		child := NewObject("ОбъектКластера")
+		o.elems = append(o.elems, child)
+		return child, nil
 	case "вставить", "insert":
 		o.put(bsl.ToString(bsl.Arg(args, 0)), bsl.Arg(args, 1))
 		return nil, nil
@@ -144,8 +195,7 @@ func (o *Object) CallMethod(_ *bsl.Interp, name string, args []*bsl.Ref) (bsl.Va
 		}
 		return nil, nil
 	case "количество", "count":
-		keys, _ := o.Entries()
-		return bsl.NewInt(int64(len(keys))), nil
+		return bsl.NewInt(int64(o.Count())), nil
 	}
 	return nil, fmt.Errorf("Метод объекта не обнаружен (%s)", name)
 }

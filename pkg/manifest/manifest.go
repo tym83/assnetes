@@ -37,37 +37,7 @@ func NewInterp(res *Result, opts Options) *bsl.Interp {
 	if opts.Message != nil {
 		it.Message = opts.Message
 	}
-	for i := range perevod.Kinds {
-		k := perevod.Kinds[i]
-		ctor := func(_ *bsl.Interp, args []bsl.Value) (bsl.Value, error) {
-			o := NewObject(k.Ru)
-			if k.Native {
-				o.Set("ВерсияAPI", perevod.GroupRu+"/v1")
-			}
-			o.Set("Вид", k.Ru)
-			if len(args) > 0 {
-				md, _ := o.Get("Метаданные")
-				md.(*Object).Set("Имя", bsl.ToString(args[0]))
-				if len(args) > 1 && k.Namespaced {
-					md.(*Object).Set("Подразделение", bsl.ToString(args[1]))
-				}
-			}
-			return o, nil
-		}
-		names := append([]string{k.Ru, k.Kind}, k.Aliases...)
-		it.DefineType(ctor, names...)
-	}
-	it.DefineType(func(_ *bsl.Interp, args []bsl.Value) (bsl.Value, error) {
-		o := NewObject("ОбъектКластера")
-		if len(args) > 0 {
-			o.Set("Вид", bsl.ToString(args[0]))
-		}
-		if len(args) > 1 {
-			md, _ := o.Get("Метаданные")
-			md.(*Object).Set("Имя", bsl.ToString(args[1]))
-		}
-		return o, nil
-	}, "ОбъектКластера", "ClusterObject")
+	DefineKinds(it)
 
 	params := bsl.NewStructure()
 	for k, v := range opts.Params {
@@ -120,4 +90,42 @@ func Run(ctx context.Context, name, src string, opts Options) (*Result, error) {
 		return nil, fmt.Errorf("манифест ничего не провёл: где Провести(...)?")
 	}
 	return res, nil
+}
+
+// DefineKinds defines a constructor for every kind, «Новый Развёртывание(Имя,
+// Подразделение)», and ОбъектКластера for kinds without one.
+func DefineKinds(it *bsl.Interp) {
+	for i := range perevod.Kinds {
+		k := perevod.Kinds[i]
+		ctor := func(_ *bsl.Interp, args []bsl.Value) (bsl.Value, error) {
+			o := NewObject(k.Ru)
+			if k.Native {
+				o.Set("ВерсияAPI", perevod.GroupRu+"/v1")
+			}
+			o.Set("Вид", k.Ru)
+			if len(args) > 0 {
+				md, _ := o.Get("Метаданные")
+				md.(*Object).Set("Имя", bsl.ToString(args[0]))
+				if len(args) > 1 && k.Namespaced {
+					md.(*Object).Set("Подразделение", bsl.ToString(args[1]))
+				}
+			}
+			return o, nil
+		}
+		names := append([]string{k.Ru, k.Kind}, k.Aliases...)
+		it.DefineType(ctor, names...)
+	}
+	it.DefineType(func(_ *bsl.Interp, args []bsl.Value) (bsl.Value, error) {
+		o := NewObject("ОбъектКластера")
+		if len(args) > 0 {
+			o.Set("Вид", bsl.ToString(args[0]))
+		}
+		if len(args) > 1 {
+			md, _ := o.Get("Метаданные")
+			md.(*Object).Set("Имя", bsl.ToString(args[1]))
+		}
+		return o, nil
+	}, "ОбъектКластера", "ClusterObject")
+
+	it.DefineType(func(_ *bsl.Interp, _ []bsl.Value) (bsl.Value, error) { return &List{}, nil }, "СписокОбъектаКластера")
 }

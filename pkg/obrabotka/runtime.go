@@ -43,6 +43,10 @@ type Runner struct {
 // MaxSteps bounds the statements of one call of a handler.
 var MaxSteps int64 = 5_000_000
 
+// RunScheduleAtStart runs every scheduled procedure once when the leader
+// starts, besides its schedule: for testing and for catching up.
+var RunScheduleAtStart bool
+
 // Finalizer of an обработка that has ПередУдалением.
 func (r *Runner) finalizer() string {
 	return perevod.Group + "/" + perevod.Translit(r.ob.Name)
@@ -78,6 +82,7 @@ func NewRunner(ob *Obrabotka, mgr manager.Manager) (*Runner, error) {
 	}, "ПовторитьЧерез", "RequeueAfter")
 	registerHTTP(it)
 	registerXML(it)
+	registerHelpers(it)
 	r.it = it
 	r.cluster.ctx = context.Background()
 	s, err := it.Load(ob.Module)
@@ -277,6 +282,15 @@ func (s *schedule) Start(ctx context.Context) error {
 		}
 	}
 	c.Start()
+	if RunScheduleAtStart {
+		for _, job := range s.r.ob.Schedule {
+			s.r.mu.Lock()
+			if err := s.r.call(ctx, job.Method); err != nil {
+				s.r.log.Error(err, "регламентное задание завершилось с ошибкой", "процедура", job.Method)
+			}
+			s.r.mu.Unlock()
+		}
+	}
 	<-ctx.Done()
 	<-c.Stop().Done()
 	return nil

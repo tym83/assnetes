@@ -134,6 +134,10 @@ func (c *httpConnection) CallMethod(it *bsl.Interp, name string, args []*bsl.Ref
 			hr.Header.Set(bsl.ToString(k), bsl.ToString(v))
 		}
 	}
+	if hr.Header.Get("User-Agent") == "" {
+		// some servers, the Bank of Russia among them, turn away Go's default
+		hr.Header.Set("User-Agent", "assnetes-obrabotchik/1 (1Zh:Orkestrator 8)")
+	}
 	if c.user != "" {
 		hr.SetBasicAuth(c.user, c.pass)
 	}

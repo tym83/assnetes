@@ -104,11 +104,24 @@ func AnnotationKey(k string) string {
 	return punyEncode(prefix) + "/" + labelName(name)
 }
 
+// annotationNames are names of the distribution's own annotations, so they
+// read back in Russian, not in transliteration.
+var annotationNames = []string{"наименование", "метки", "имена", "пометка-удаления", "служебная-записка",
+	"дата-запрета", "главбух", "курс", "стоимость"}
+
 // AnnotationKeyRu turns an annotation or label key back into Cyrillic.
 func AnnotationKeyRu(k string) string {
 	prefix, name, ok := strings.Cut(k, "/")
 	if !ok {
 		return k
+	}
+	if prefix == Group {
+		for _, n := range annotationNames {
+			if Translit(n) == name {
+				name = n
+				break
+			}
+		}
 	}
 	return punyDecode(prefix) + "/" + name
 }

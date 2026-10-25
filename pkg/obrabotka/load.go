@@ -64,7 +64,7 @@ func Load(dir string) (*Obrabotka, error) {
 		switch ext := strings.ToLower(filepath.Ext(n)); {
 		case ext == ".bsl" || ext == ".os":
 			modules = append(modules, n)
-		case (ext == ".yaml" || ext == ".yml") && strings.HasPrefix(n, "Метаданные"):
+		case (ext == ".yaml" || ext == ".yml") && (strings.HasPrefix(n, "Метаданные") || strings.HasPrefix(n, "metadannye")):
 			crds = append(crds, filepath.Join(dir, n))
 		}
 	}
@@ -73,7 +73,8 @@ func Load(dir string) (*Obrabotka, error) {
 	var file string
 	for _, m := range modules {
 		base := strings.TrimSuffix(m, filepath.Ext(m))
-		if base == "Обработка" || base == "Модуль" || base == "ObjectModule" {
+		// ConfigMap keys cannot be Cyrillic, so the Latin spellings count too
+		if base == "Обработка" || base == "Модуль" || base == "obrabotka" || base == "modul" {
 			file = m
 		}
 	}
@@ -149,8 +150,8 @@ func (ob *Obrabotka) declare() error {
 		}
 		ob.Schedule = append(ob.Schedule, Scheduled{Method: m.Name, Cron: bsl.ToString(v)})
 	}
-	if ob.Kind.Empty() && len(ob.Schedule) == 0 {
-		return fmt.Errorf("%s: обработка ничего не обрабатывает: нет ни %s, ни &Расписание", ob.Name, HandlerPost)
+	if ob.Kind.Empty() && len(ob.Schedule) == 0 && ob.Module.Method(HandlerValidate) == nil {
+		return fmt.Errorf("%s: обработка ничего не обрабатывает: нет ни %s, ни %s, ни &Расписание", ob.Name, HandlerPost, HandlerValidate)
 	}
 	return nil
 }
