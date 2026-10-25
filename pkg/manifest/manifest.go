@@ -38,6 +38,9 @@ func NewInterp(res *Result, opts Options) *bsl.Interp {
 		it.Message = opts.Message
 	}
 	DefineKinds(it)
+	it.Define(func(_ *bsl.Interp, args []*bsl.Ref) (bsl.Value, error) {
+		return perevod.Name(bsl.ToString(bsl.Arg(args, 0))), nil
+	}, "ИмяAPI", "APIName")
 
 	params := bsl.NewStructure()
 	for k, v := range opts.Params {

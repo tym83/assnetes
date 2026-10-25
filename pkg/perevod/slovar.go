@@ -150,7 +150,7 @@ var fieldPairs = [][2]string{
 	{"failureThreshold", "ПорогНеудач"}, {"timeoutSeconds", "ТаймаутСекунд"}, {"scheme", "Схема"},
 	{"loadBalancer", "Балансировщик"}, {"ingress", "Входящий"}, {"nodeInfo", "СведенияОбУзле"},
 	{"addresses", "Адреса"}, {"address", "ЗначениеАдреса"}, {"kubeletVersion", "ВерсияKubelet"},
-	{"verbs", "Действия"}, {"apiGroups", "ГруппыAPI"}, {"subjects", "Субъекты"}, {"roleRef", "СсылкаНаРоль"},
+	{"verbs", "Действия"}, {"apiGroups", "ГруппыAPI"}, {"apiGroup", "ГруппаAPI"}, {"subjects", "Субъекты"}, {"roleRef", "СсылкаНаРоль"},
 }
 
 // Fields whose keys are data, not schema: never translated.

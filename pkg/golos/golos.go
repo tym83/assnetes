@@ -129,6 +129,9 @@ func workdaysSinceMonthStart(t time.Time) int {
 
 // ErrorKind classifies an error of the API the way the catalog keys them.
 func ErrorKind(err error) string {
+	if _, ok := deniedBy(err); ok {
+		return "otkaz"
+	}
 	switch {
 	case apierrors.IsConflict(err):
 		return "conflict"
@@ -147,10 +150,22 @@ func ErrorKind(err error) string {
 		return "invalid"
 	case apierrors.IsTimeout(err), apierrors.IsServerTimeout(err):
 		return "timeout"
+	case apierrors.IsInternalError(err) && strings.Contains(err.Error(), "typed patch"):
+		return "invalid" // server-side apply rejects fields the schema does not know
 	case apierrors.IsServiceUnavailable(err), apierrors.IsInternalError(err):
 		return "unavailable"
 	}
 	return "other"
+}
+
+// deniedBy extracts what an admission check said when it refused.
+func deniedBy(err error) (string, bool) {
+	msg := err.Error()
+	const marker = "denied the request: "
+	if i := strings.Index(msg, marker); i >= 0 && strings.Contains(msg, "admission webhook") {
+		return msg[i+len(marker):], true
+	}
+	return "", false
 }
 
 // Error words an error of the API the way the 1C platform would. The
@@ -160,7 +175,9 @@ func (g *Golos) Error(err error, v Vars) string {
 	if v == nil {
 		v = Vars{}
 	}
-	if _, ok := v["Причина"]; !ok {
+	if reason, ok := deniedBy(err); ok {
+		v["Причина"] = reason
+	} else if _, ok := v["Причина"]; !ok {
 		v["Причина"] = err.Error()
 	}
 	return render(frazy.errors[kind], v)
