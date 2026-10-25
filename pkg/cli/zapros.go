@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -115,7 +116,7 @@ func (o *options) query(ctx context.Context, text string, params map[string]bsl.
 func (o *options) printTable(t *bsl.ValueTable) {
 	header := make([]string, 0, len(t.Columns()))
 	for _, c := range t.Columns() {
-		header = append(header, strings.ToUpper(c))
+		header = append(header, strings.ToUpper(splitWords(c)))
 	}
 	var rows [][]string
 	for _, r := range t.Rows() {
@@ -137,17 +138,32 @@ func newOSVCommand(o *options) *cobra.Command {
 	return &cobra.Command{
 		Use:     "осв",
 		Aliases: []string{"оборотно-сальдовая-ведомость"},
-		Short:   "оборотно-сальдовая ведомость по ресурсам узлов: приход, расход, остаток",
+		Short:   "оборотно-сальдовая ведомость по ресурсам узлов: дебет — что даёт узел, кредит — что запросили поды",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			fmt.Fprintln(o.out, bold(o.tty, "Оборотно-сальдовая ведомость по счёту 01 «Узлы»"))
+			fmt.Fprintln(o.out, bold(o.tty, "Оборотно-сальдовая ведомость по счёту 01 «Основные средства», субконто «Узлы»"))
+			fmt.Fprintln(o.out, "Дебет — что даёт узел, кредит — что запросили поды. Ядра — в штуках, память — в ГиБ.")
 			return o.query(cmd.Context(), `
 				ВЫБРАТЬ
 					О.Узел КАК Узел,
-					О.ПроцессорПриход КАК ЯдерПриход, О.ПроцессорРасход КАК ЯдерРасход, О.ПроцессорОстаток КАК ЯдерОстаток,
-					О.ПамятьПриход КАК ГиБПриход, О.ПамятьРасход КАК ГиБРасход, О.ПамятьОстаток КАК ГиБОстаток,
+					О.ПроцессорПриход КАК ЯдраОборотДт, О.ПроцессорРасход КАК ЯдраОборотКт, О.ПроцессорОстаток КАК ЯдраСальдоДт,
+					О.ПамятьПриход КАК ПамятьОборотДт, О.ПамятьРасход КАК ПамятьОборотКт, О.ПамятьОстаток КАК ПамятьСальдоДт,
 					О.ПодыРасход КАК Подов
-				ИЗ РегистрНакопления.РесурсыУзлов.Остатки КАК О
+				ИЗ РегистрНакопления.РесурсыУзлов.ОстаткиИОбороты КАК О
 				УПОРЯДОЧИТЬ ПО О.Узел`, nil)
 		},
 	}
+}
+
+// splitWords puts spaces between the words of a column name written
+// together, «ЯдраОборотДт» → «Ядра Оборот Дт», as the window does.
+func splitWords(s string) string {
+	rs := []rune(s)
+	var b strings.Builder
+	for i, r := range rs {
+		if i > 0 && unicode.IsUpper(r) && unicode.IsLower(rs[i-1]) {
+			b.WriteRune(' ')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
