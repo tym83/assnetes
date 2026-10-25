@@ -1,0 +1,28 @@
+apiVersion: kubepkg.dev/v1
+kind: Recipe
+metadata:
+  name: 1c-buhgalteriya
+  annotations:
+    kubepkg.dev/description: "1С:Бухгалтерия предприятия 3.0: шаблоны конфигурации и обновлений для оператора 1С"
+    kubepkg.dev/home: https://github.com/tym83/assnetes
+spec:
+  version: 0.1.0
+  build: 1
+  sources:
+    manifests:
+      dir: manifests
+  charts:
+    1c-buhgalteriya:
+      from: [manifests]
+  package:
+    provides: [1c-buhgalteriya]
+    rollback:
+      safe: true
+    variants:
+      - name: default
+        requires:
+          - {package: 1c-predpriyatie, version: ">=0.1.0-0"}
+        components:
+          - name: 1c-buhgalteriya
+            path: 1c-buhgalteriya
+            install: {namespace: assnetes-1c}

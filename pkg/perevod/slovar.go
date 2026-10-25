@@ -88,6 +88,7 @@ var Kinds = []Kind{
 	{Kind: "Standalone", APIVersion: Group + "/v1", Ru: "АвтономныйСервер", Plural: "АвтономныеСерверы", Resource: "standalones", Namespaced: true, Native: true, Gender: 'm'},
 	{Kind: "InfobaseBackup", APIVersion: Group + "/v1", Ru: "Выгрузка", Plural: "Выгрузки", Resource: "infobasebackups", Namespaced: true, Native: true, Gender: 'f'},
 	{Kind: "ConfigurationUpdate", APIVersion: Group + "/v1", Ru: "ОбновлениеКонфигурации", Plural: "ОбновленияКонфигурации", Resource: "configurationupdates", Namespaced: true, Native: true, Gender: 'n'},
+	{Kind: "ConfigurationTemplate", APIVersion: Group + "/v1", Ru: "ШаблонКонфигурации", Plural: "ШаблоныКонфигураций", Resource: "configurationtemplates", Native: true, Gender: 'm'},
 	{Kind: "ExchangeLink", APIVersion: Group + "/v1", Ru: "ПланОбмена", Plural: "ПланыОбмена", Resource: "exchangelinks", Namespaced: true, Native: true, Gender: 'm'},
 	{Kind: "BitrixSite", APIVersion: Group + "/v1", Ru: "Сайт", Plural: "Сайты", Aliases: []string{"СайтБитрикс"}, Resource: "bitrixsites", Namespaced: true, Native: true, Gender: 'm'},
 	{Kind: "ProductionCalendar", APIVersion: Group + "/v1", Ru: "ПроизводственныйКалендарь", Plural: "ПроизводственныеКалендари", Resource: "productioncalendars", Native: true, Gender: 'm'},

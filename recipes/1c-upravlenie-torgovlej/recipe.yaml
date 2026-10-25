@@ -1,0 +1,28 @@
+apiVersion: kubepkg.dev/v1
+kind: Recipe
+metadata:
+  name: 1c-upravlenie-torgovlej
+  annotations:
+    kubepkg.dev/description: "1С:Управление торговлей 11: шаблоны конфигурации и обновлений для оператора 1С"
+    kubepkg.dev/home: https://github.com/tym83/assnetes
+spec:
+  version: 0.1.0
+  build: 1
+  sources:
+    manifests:
+      dir: manifests
+  charts:
+    1c-upravlenie-torgovlej:
+      from: [manifests]
+  package:
+    provides: [1c-upravlenie-torgovlej]
+    rollback:
+      safe: true
+    variants:
+      - name: default
+        requires:
+          - {package: 1c-predpriyatie, version: ">=0.1.0-0"}
+        components:
+          - name: 1c-upravlenie-torgovlej
+            path: 1c-upravlenie-torgovlej
+            install: {namespace: assnetes-1c}

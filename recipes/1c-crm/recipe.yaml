@@ -1,0 +1,28 @@
+apiVersion: kubepkg.dev/v1
+kind: Recipe
+metadata:
+  name: 1c-crm
+  annotations:
+    kubepkg.dev/description: "1С:CRM 3.1: шаблоны конфигурации для оператора 1С"
+    kubepkg.dev/home: https://github.com/tym83/assnetes
+spec:
+  version: 0.1.0
+  build: 1
+  sources:
+    manifests:
+      dir: manifests
+  charts:
+    1c-crm:
+      from: [manifests]
+  package:
+    provides: [1c-crm]
+    rollback:
+      safe: true
+    variants:
+      - name: default
+        requires:
+          - {package: 1c-predpriyatie, version: ">=0.1.0-0"}
+        components:
+          - name: 1c-crm
+            path: 1c-crm
+            install: {namespace: assnetes-1c}

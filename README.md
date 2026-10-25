@@ -11,7 +11,7 @@ Assnetes is a Kubernetes distribution for accounting departments. Everything peo
 
 It is a joke that works: the API server, etcd and every controller are real, and so is what they do.
 
-> **Status:** early. The language, the manifests, `1сctl` and the runtime of operators work and run five operators on a test cluster. The operators of the 1C products are being written. See [the design](docs/design.md).
+> **Status:** early, and working on a test cluster: the language, manifests, `1сctl`, the runtime of operators with five general operators, the operators of 1C:Enterprise and 1C-Bitrix, the price list of packages, the query language and the GUI. 1C itself is tested against a stand-in of its server: the platform may not be redistributed. See [the design](docs/design.md).
 
 > Assnetes is an unofficial parody. It is not made, endorsed or supported by 1C Company. «1С», «1С:Предприятие» and the names of 1C products are trademarks of 1C Company; Assnetes ships none of its software: you bring your own distribution of the platform and its license.
 
@@ -80,6 +80,26 @@ Five operators come with the distribution, in [obrabotki](obrabotki):
 | [Удаление помеченных](obrabotki/udalenie-pomechennyh) | deletes what was marked for deletion, only when nothing refers to it, and says what does otherwise |
 | [Акт сверки](obrabotki/akt-sverki) | compares the cluster with manifests in Git and writes up a reconciliation statement |
 
+## Packages
+
+```console
+$ 1сctl ввод-начальных-остатков        # the package manager and the price list
+$ 1сctl прайс
+$ 1сctl закупить бухгалтерия            # 1C:Enterprise, CloudNativePG and 1C:Accounting
+$ 1сctl закупить битрикс
+$ 1сctl остатки
+```
+
+The operator of 1C:Enterprise runs a cluster of 1C servers: it registers working servers with `rac` once their pods are ready, lets them go only after their sessions end, scales them by sessions within the licenses, keeps memory limits of working processes in step with their pods, creates infobases with `ibcmd` on PostgreSQL, publishes them, and updates configurations with sessions locked, a dump first, and the lock lifted after. With a real platform, a `Поставка` names your archive; without one, a stand-in answers as `ragent`, `rac` and `ibcmd` do.
+
+## Queries and the window
+
+```console
+$ 1сctl запрос 'ВЫБРАТЬ П.Подразделение, КОЛИЧЕСТВО(*) КАК Подов ИЗ Кластер.Поды КАК П СГРУППИРОВАТЬ ПО П.Подразделение'
+$ 1сctl осв                              # the turnover balance sheet of nodes
+$ 1сctl гуи                              # 1Ж:Предприятие at http://127.0.0.1:8383/
+```
+
 ## Layout
 
 | Path | What |
@@ -91,7 +111,10 @@ Five operators come with the distribution, in [obrabotki](obrabotki):
 | `pkg/cli`, `cmd/1sctl` | `1сctl` |
 | `pkg/obrabotka`, `cmd/obrabotchik` | the runtime of operators |
 | `pkg/metadannye` | CRDs from descriptions of kinds |
+| `pkg/zapros` | the query language |
+| `pkg/zaglushka`, `cmd/1c-zaglushka` | the stand-in of the 1C server |
 | `obrabotki` | operators that come with the distribution |
+| `recipes` | the packages of the price list |
 
 ## Build
 

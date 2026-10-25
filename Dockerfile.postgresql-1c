@@ -1,0 +1,17 @@
+# PostgreSQL for 1C, the build with the patch of 1C that Postgres
+# Professional publishes for free, on the image CloudNativePG runs. CNPG
+# finds postgres, initdb and the rest on PATH, and the major version in the
+# tag: 18-1c.
+# Bookworm: the repository is signed by a key whose SHA-1 binding trixie's
+# apt no longer accepts.
+ARG BASE=ghcr.io/cloudnative-pg/postgresql:18.6-system-bookworm
+FROM ${BASE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates wget gnupg locales \
+ && wget -qO- https://repo.postgrespro.ru/1c/1c-18/keys/GPG-KEY-POSTGRESPRO | gpg --dearmor > /usr/share/keyrings/postgrespro.gpg \
+ && echo "deb [signed-by=/usr/share/keyrings/postgrespro.gpg] https://repo.postgrespro.ru/1c/1c-18/debian bookworm main" > /etc/apt/sources.list.d/postgrespro-1c.list \
+ && apt-get update && apt-get install -y --no-install-recommends postgrespro-1c-18-server postgrespro-1c-18-contrib \
+ && sed -i 's/^# *ru_RU.UTF-8/ru_RU.UTF-8/' /etc/locale.gen && locale-gen \
+ && rm -rf /var/lib/apt/lists/*
+ENV PATH=/opt/pgpro/1c-18/bin:$PATH
+USER 26

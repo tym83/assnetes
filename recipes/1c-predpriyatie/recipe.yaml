@@ -1,0 +1,37 @@
+apiVersion: kubepkg.dev/v1
+kind: Recipe
+metadata:
+  name: 1c-predpriyatie
+  annotations:
+    kubepkg.dev/description: "Оператор 1С:Предприятия: кластер серверов, информационные базы, публикации, обновления и выгрузки; платформу приносите свою или берите заглушку"
+    kubepkg.dev/home: https://github.com/tym83/assnetes
+spec:
+  version: 0.1.0
+  build: 1
+  sources:
+    manifests:
+      dir: manifests
+  charts:
+    obrabotchik-1c:
+      from: [manifests]
+      crdsDir: true
+  package:
+    provides: [1c-predpriyatie]
+    crds:
+      - platforms.xn--80ajopdiccfkc.xn--90a0bg
+      - serverclusters.xn--80ajopdiccfkc.xn--90a0bg
+      - infobases.xn--80ajopdiccfkc.xn--90a0bg
+      - publications.xn--80ajopdiccfkc.xn--90a0bg
+      - configurationupdates.xn--80ajopdiccfkc.xn--90a0bg
+      - infobasebackups.xn--80ajopdiccfkc.xn--90a0bg
+      - configurationtemplates.xn--80ajopdiccfkc.xn--90a0bg
+    rollback:
+      safe: true
+    variants:
+      - name: default
+        requires:
+          - {package: cloudnative-pg, version: ">=1.25"}
+        components:
+          - name: obrabotchik-1c
+            path: obrabotchik-1c
+            install: {namespace: assnetes-1c, upgradeCRDs: CreateReplace}

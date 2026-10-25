@@ -1,0 +1,154 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: Сайт
+  name: bitrixsites.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: BitrixSite
+    listKind: BitrixSiteList
+    plural: bitrixsites
+    shortNames:
+      - bx
+    singular: bitrixsite
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.Редакция
+          name: Редакция
+          type: string
+        - jsonPath: .status.Фаза
+          name: Фаза
+          type: string
+        - jsonPath: .status.Веб
+          name: Веб
+          type: string
+        - jsonPath: .status.Адрес
+          name: Адрес
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Сайт на 1С-Битрикс — Управление сайтом или Битрикс24 в коробке, с базой, кешем и веб-кластером.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                БазаДанных:
+                  properties:
+                    Объём:
+                      default: 10Gi
+                      type: string
+                    Память:
+                      default: 1Gi
+                      type: string
+                    Процессор:
+                      default: 500m
+                      type: string
+                  type: object
+                Веб:
+                  properties:
+                    ВерсияPHP:
+                      default: "8.2"
+                      enum:
+                        - "8.2"
+                        - "8.3"
+                        - "8.4"
+                      type: string
+                    МаксимумРеплик:
+                      description: Если больше Реплик — сезонный найм по загрузке процессора
+                      minimum: 1
+                      type: integer
+                    Объём:
+                      default: 10Gi
+                      type: string
+                    Память:
+                      default: 1Gi
+                      type: string
+                    Процессор:
+                      default: 500m
+                      type: string
+                    Реплики:
+                      default: 1
+                      description: Узлов веб-кластера; первый — ведущий, остальные — зеркала
+                      minimum: 1
+                      type: integer
+                  type: object
+                Домен:
+                  description: Имя сайта для проходной, например shop.example.ru
+                  type: string
+                КлассПроходной:
+                  default: nginx
+                  type: string
+                КлассХранения:
+                  type: string
+                КлючЛицензии:
+                  description: Имя секрета с ключом лицензии (ключ «ключ»); без него — пробная версия на 30 дней
+                  type: string
+                Редакция:
+                  default: start
+                  description: 'Дистрибутив с www.1c-bitrix.ru: Старт, Стандарт, Малый бизнес, Бизнес, Энтерпрайз; или Битрикс24 в коробке'
+                  enum:
+                    - start
+                    - standard
+                    - small_business
+                    - business
+                    - business_cluster
+                    - business_cluster_postgresql
+                    - bitrix24_shop
+                    - bitrix24
+                    - bitrix24_enterprise
+                  type: string
+              type: object
+            status:
+              properties:
+                Агенты:
+                  type: string
+                Адрес:
+                  type: string
+                БазаДанных:
+                  properties:
+                    База:
+                      type: string
+                    Пароль:
+                      type: string
+                    Пользователь:
+                      type: string
+                    Сервер:
+                      type: string
+                  type: object
+                Веб:
+                  type: string
+                Ведущий:
+                  type: string
+                Сообщение:
+                  type: string
+                Установлен:
+                  type: string
+                Фаза:
+                  enum:
+                    - Подготовка
+                    - Поставка
+                    - ОжидаетМастерУстановки
+                    - Работает
+                    - Ошибка
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}

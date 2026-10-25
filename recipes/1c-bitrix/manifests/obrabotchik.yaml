@@ -48,6 +48,7 @@ spec:
             - --service=obrabotchik-bitrix
             - --id=obrabotchik-bitrix
             - --namespace=assnetes-bitrix
+            - --vidy=false
             - /obrabotki/bitrix
           resources:
             requests:

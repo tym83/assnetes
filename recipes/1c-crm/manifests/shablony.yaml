@@ -1,0 +1,18 @@
+apiVersion: xn--80ajopdiccfkc.xn--90a0bg/v1
+kind: ConfigurationTemplate
+metadata:
+  name: crm-3-1-36-14
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: CRM-3.1.36.14
+spec:
+  Конфигурация: CRM
+  Синоним: 1С:CRM ПРОФ, редакция 3.1
+  Версия: 3.1.36.14
+  ВидФайла: cf
+  Поставщик: 1С-Рарус
+  МинимальнаяПлатформа: 8.3.24
+  Содержимое: |
+    Имя: CRM
+    Синоним: 1С:CRM ПРОФ, редакция 3.1
+    Версия: 3.1.36.14
+    Поставщик: 1С-Рарус (заглушка)

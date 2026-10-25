@@ -2,6 +2,7 @@ package bsl
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"math"
 	"strings"
@@ -188,6 +189,18 @@ func registerStdlib(it *Interp) {
 		}
 		return ToString(Arg(args, 0)), nil
 	}, "XMLСтрока", "XMLString")
+	// В платформе Base64Строка принимает ДвоичныеДанные; здесь их нет, и
+	// строка кодируется в UTF-8.
+	it.Define(func(_ *Interp, args []*Ref) (Value, error) {
+		return base64.StdEncoding.EncodeToString([]byte(str(args, 0))), nil
+	}, "Base64Строка", "Base64String")
+	it.Define(func(_ *Interp, args []*Ref) (Value, error) {
+		b, err := base64.StdEncoding.DecodeString(str(args, 0))
+		if err != nil {
+			return nil, fmt.Errorf("Неверная строка Base64")
+		}
+		return string(b), nil
+	}, "Base64Значение", "Base64Value")
 	it.Define(func(_ *Interp, args []*Ref) (Value, error) {
 		t, _ := Arg(args, 0).(TypeValue)
 		s := strings.TrimSpace(str(args, 1))
