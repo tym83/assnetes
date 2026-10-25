@@ -35,12 +35,12 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: The tag is the version of every recipe
+      - name: The tag is the version of every package
         run: |
           v=${GITHUB_REF_NAME#v}
-          for r in recipes/*/recipe.yaml; do
-            grep -q "^  version: ${v}$" "$r" || { echo "$r is not version ${v}"; exit 1; }
-          done
+          sed -i -E "s/^  version: .*/  version: ${v}/" recipes/*/recipe.yaml
+          # a release candidate requires the candidates of its members
+          sed -i -E "s/version: \"~0\.1\"/version: \">=${v}\"/" recipes/assnetes/recipe.yaml
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
