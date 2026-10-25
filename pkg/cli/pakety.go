@@ -6,6 +6,8 @@ import (
 
 	kubepkgcli "github.com/kuberoot-dev/kubepkg/pkg/cli"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // GroupPakety is the API group of packages, «пакеты.бух».
@@ -33,6 +35,16 @@ func newPaketyCommand(root *cobra.Command) {
 	opts.Short = "пакетный менеджер: закупить, списать, остатки, прайс, смета, сторно"
 	opts.APIGroup = GroupPakety
 	pk := kubepkgcli.NewRootCommand(opts)
+	// On a cluster whose package manager serves kubepkg's own group, as
+	// the kuberoot distribution does, take that group instead.
+	pk.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
+		if f := cmd.Flags().Lookup("api-group"); f != nil && !f.Changed {
+			if g := servedPackageGroup(); g != "" {
+				_ = f.Value.Set(g)
+			}
+		}
+		return nil
+	}
 	pk.Aliases = []string{"packages"}
 	for _, c := range pk.Commands() {
 		if ru, ok := paketyNames[c.Name()]; ok {
@@ -80,4 +92,31 @@ func translatePackages(args []string) []string {
 		}
 	}
 	return out
+}
+
+// servedPackageGroup finds which group the cluster's package manager
+// serves: «пакеты.бух» first, then kubepkg.dev.
+func servedPackageGroup() string {
+	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ClientConfig()
+	if err != nil {
+		return ""
+	}
+	dc, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return ""
+	}
+	groups, err := dc.ServerGroups()
+	if err != nil {
+		return ""
+	}
+	found := map[string]bool{}
+	for _, g := range groups.Groups {
+		found[g.Name] = true
+	}
+	for _, g := range []string{GroupPakety, "kubepkg.dev"} {
+		if found[g] {
+			return g
+		}
+	}
+	return ""
 }
