@@ -12,6 +12,7 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	_ "time/tzdata" // Moscow time for lunch, on systems without a zone database
 
 	"gopkg.in/yaml.v3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -111,10 +112,14 @@ func (g *Golos) Calendar() string {
 	return ""
 }
 
-// Lunch reports whether the department is at lunch now.
+// Lunch reports whether the department is at lunch now: 13:00 to 14:00
+// Moscow time on weekdays, as the production calendar has it.
 func (g *Golos) Lunch() bool {
-	h := g.Now().Hour()
-	return h == 12
+	now := g.Now()
+	if moscow, err := time.LoadLocation("Europe/Moscow"); err == nil {
+		now = now.In(moscow)
+	}
+	return now.Weekday() != time.Saturday && now.Weekday() != time.Sunday && now.Hour() == 13
 }
 
 func workdaysSinceMonthStart(t time.Time) int {
