@@ -4,7 +4,8 @@ go 1.26.5
 
 require (
 	github.com/go-logr/logr v1.4.3
-	github.com/kuberoot-dev/kubepkg v1.3.0
+	github.com/jackc/pgx/v5 v5.11.0
+	github.com/kuberoot-dev/kubepkg v1.3.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/net v0.61.0
@@ -76,7 +77,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.11.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
