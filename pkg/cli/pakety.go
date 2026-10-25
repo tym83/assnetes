@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 
 	kubepkgcli "github.com/kuberoot-dev/kubepkg/pkg/cli"
 	"github.com/spf13/cobra"
@@ -47,9 +48,36 @@ func newPaketyCommand(root *cobra.Command) {
 			Short:              fmt.Sprintf("то же, что «1сctl пакеты %s»", ru),
 			DisableFlagParsing: true,
 			RunE: func(cmd *cobra.Command, args []string) error {
-				pk.SetArgs(append([]string{target}, args...))
-				return pk.ExecuteContext(cmd.Context())
+				// cobra executes a subcommand through its root: run the root
+				// again, as «1сctl пакеты <command>»
+				root.SetArgs(append([]string{"пакеты", target}, translatePackages(args)...))
+				return root.ExecuteContext(cmd.Context())
 			},
 		})
 	}
+}
+
+// packageNames are the products of the price list by the names people
+// call them.
+var packageNames = map[string]string{
+	"битрикс": "1c-bitrix", "1с-битрикс": "1c-bitrix", "сайт": "1c-bitrix",
+	"обработки": "assnetes-obrabotki", "всё": "assnetes", "все": "assnetes",
+	"предприятие": "1c-predpriyatie", "платформа": "1c-predpriyatie",
+	"бухгалтерия": "1c-buhgalteriya", "торговля": "1c-upravlenie-torgovlej",
+	"управлениеторговлей": "1c-upravlenie-torgovlej", "црм": "1c-crm", "crm": "1c-crm",
+}
+
+func translatePackages(args []string) []string {
+	out := make([]string, len(args))
+	for i, a := range args {
+		name, constraint, hasAt := strings.Cut(a, "@")
+		if p, ok := packageNames[strings.ToLower(name)]; ok && !strings.HasPrefix(a, "-") {
+			name = p
+		}
+		out[i] = name
+		if hasAt {
+			out[i] += "@" + constraint
+		}
+	}
+	return out
 }

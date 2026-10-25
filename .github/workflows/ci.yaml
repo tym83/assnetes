@@ -23,6 +23,8 @@ jobs:
       - run: go test ./...
       - name: Manifests of the packages are generated from deploy/obrabotchik.bsl
         run: hack/gen-recipes.sh && git diff --exit-code recipes
+      - name: 1сctl trusts the key the price list is signed with
+        run: diff keys/index.pub pkg/cli/vvod/index.pub
       - name: Recipes build
         run: |
           go install github.com/kuberoot-dev/kubepkg/cmd/kubepkg@v1.3.0

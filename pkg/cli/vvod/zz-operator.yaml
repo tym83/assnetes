@@ -1,0 +1,185 @@
+# The kubepkg operator, rendered from oci://ghcr.io/kuberoot-dev/charts/kubepkg 1.3.0
+# with apiGroup «пакеты.бух»; its CRDs for that group are the files next to it.
+---
+# Source: kubepkg/templates/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubepkg
+  namespace: kubepkg-system
+  labels:
+    app.kubernetes.io/name: kubepkg
+    app.kubernetes.io/instance: kubepkg
+    app.kubernetes.io/version: "1.3.0"
+---
+# Source: kubepkg/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubepkg
+  labels:
+    app.kubernetes.io/name: kubepkg
+    app.kubernetes.io/instance: kubepkg
+    app.kubernetes.io/version: "1.3.0"
+rules:
+  - apiGroups: ["xn--80akoss8c.xn--90a0bg"]
+    resources: [packages, packagesources, packagerevisions, repositories, clusters, packagesets]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: ["xn--80akoss8c.xn--90a0bg"]
+    resources: [packages/status, packagesources/status, packagerevisions/status, repositories/status, clusters/status, packagesets/status, packages/finalizers, packagesets/finalizers]
+    verbs: [get, update, patch]
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get, list, watch, update, patch, delete]
+  # After moving objects to the storage version, the operator records
+  # that only that version is stored.
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions/status]
+    verbs: [update]
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [get, list, watch, create, update, patch]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create, patch]
+  - apiGroups: [events.k8s.io]
+    resources: [events]
+    verbs: [create, patch]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [helm.toolkit.fluxcd.io]
+    resources: [helmreleases]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [source.toolkit.fluxcd.io]
+    resources: [ocirepositories, helmrepositories]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [argoproj.io]
+    resources: [applications]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+# Source: kubepkg/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubepkg
+  labels:
+    app.kubernetes.io/name: kubepkg
+    app.kubernetes.io/instance: kubepkg
+    app.kubernetes.io/version: "1.3.0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubepkg
+subjects:
+  - kind: ServiceAccount
+    name: kubepkg
+    namespace: kubepkg-system
+---
+# Source: kubepkg/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubepkg-cluster-admin
+  labels:
+    app.kubernetes.io/name: kubepkg
+    app.kubernetes.io/instance: kubepkg
+    app.kubernetes.io/version: "1.3.0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: kubepkg
+    namespace: kubepkg-system
+---
+# Source: kubepkg/templates/metrics.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubepkg-metrics
+  namespace: kubepkg-system
+  labels:
+    app.kubernetes.io/name: kubepkg
+    app.kubernetes.io/instance: kubepkg
+    app.kubernetes.io/version: "1.3.0"
+spec:
+  selector:
+    app.kubernetes.io/name: kubepkg
+    app.kubernetes.io/instance: kubepkg
+  ports:
+    - {name: metrics, port: 8080, targetPort: metrics}
+---
+# Source: kubepkg/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubepkg
+  namespace: kubepkg-system
+  labels:
+    app.kubernetes.io/name: kubepkg
+    app.kubernetes.io/instance: kubepkg
+    app.kubernetes.io/version: "1.3.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubepkg
+      app.kubernetes.io/instance: kubepkg
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kubepkg
+        app.kubernetes.io/instance: kubepkg
+        app.kubernetes.io/version: "1.3.0"
+    spec:
+      serviceAccountName: kubepkg
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: operator
+          image: "ghcr.io/kuberoot-dev/kubepkg-operator:1.3.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - --backend=helm
+            - --api-group=xn--80akoss8c.xn--90a0bg
+            - --leader-elect=true
+            - --package-workers=4
+            - --retry-backoff=30s
+            - --retry-backoff-max=10m
+            - --cache-dir=/var/cache/kubepkg
+            - --metrics-bind-address=:8080
+            - --health-probe-bind-address=:8081
+          env:
+            # Helm keeps its own files under HOME; the root filesystem is read-only.
+            - {name: HOME, value: /tmp}
+            - name: POD_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+          ports:
+            - {name: metrics, containerPort: 8080}
+            - {name: probes, containerPort: 8081}
+          livenessProbe:
+            httpGet: {path: /healthz, port: probes}
+          readinessProbe:
+            httpGet: {path: /readyz, port: probes}
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: cache, mountPath: /var/cache/kubepkg}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: cache, emptyDir: {}}
+        - {name: tmp, emptyDir: {}}
