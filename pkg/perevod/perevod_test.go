@@ -117,3 +117,15 @@ func TestServiceSelectorIsData(t *testing.T) {
 		t.Errorf("got %s", js)
 	}
 }
+
+func TestLookupKindInAnyCase(t *testing.T) {
+	for in, want := range map[string]string{
+		"услугу": "Service", "Услуги": "Service", "развёртыванием": "Deployment", "поды": "Pod",
+		"узлы": "Node", "ИнформационнуюБазу": "Infobase", "deployments": "Deployment", "справочников": "ConfigMap",
+	} {
+		k, ok := LookupKind(in)
+		if !ok || k.Kind != want {
+			t.Errorf("LookupKind(%q) = %v, want %s", in, k, want)
+		}
+	}
+}

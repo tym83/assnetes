@@ -13,6 +13,7 @@ import (
 var serverFields = map[string]bool{
 	"Состояние": true, "Идентификатор": true, "ВерсияРесурса": true, "Поколение": true,
 	"ДатаСоздания": true, "Владельцы": true, "managedFields": true, "selfLink": true,
+	"КластерныйАдрес": true, "КластерныеАдреса": true, "СемействаАдресов": true, "ПолитикаСемействАдресов": true,
 }
 
 var elementNames = map[string]string{
