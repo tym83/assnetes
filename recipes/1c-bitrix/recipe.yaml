@@ -1,0 +1,26 @@
+apiVersion: kubepkg.dev/v1
+kind: Recipe
+metadata:
+  name: 1c-bitrix
+  annotations:
+    kubepkg.dev/description: "Оператор сайтов на 1С-Битрикс: Управление сайтом и Битрикс24 в коробке, с базой, кешем и веб-кластером"
+    kubepkg.dev/home: https://github.com/tym83/assnetes
+spec:
+  version: 0.1.0
+  build: 1
+  sources:
+    manifests:
+      dir: manifests
+  charts:
+    obrabotchik-bitrix:
+      from: [manifests]
+  package:
+    provides: [1c-bitrix]
+    rollback:
+      safe: true
+    variants:
+      - name: default
+        components:
+          - name: obrabotchik-bitrix
+            path: obrabotchik-bitrix
+            install: {namespace: assnetes-bitrix}

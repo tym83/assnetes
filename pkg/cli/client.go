@@ -24,7 +24,7 @@ type clients struct {
 	config    *rest.Config
 	dynamic   dynamic.Interface
 	typed     kubernetes.Interface
-	mapper    meta.RESTMapper
+	mapper    meta.ResettableRESTMapper
 	namespace string // of the context, when no flag says otherwise
 }
 
@@ -102,6 +102,24 @@ func (c *clients) resolveKind(name string) (*meta.RESTMapping, *perevod.Kind, er
 	}
 	m, err := c.mapper.RESTMapping(kinds.GroupKind(), kinds.Version)
 	return m, nil, err
+}
+
+// mappingOf finds the resource of an object by its full apiVersion and kind:
+// a kind name alone may be served by several groups.
+func (c *clients) mappingOf(u *unstructured.Unstructured) (*meta.RESTMapping, *perevod.Kind, error) {
+	gvk := u.GroupVersionKind()
+	m, err := c.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		c.mapper.Reset()
+		if m, err = c.mapper.RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
+			return nil, nil, fmt.Errorf("вид «%s» (%s) в этом кластере не ведётся", gvk.Kind, gvk.GroupVersion())
+		}
+	}
+	var kind *perevod.Kind
+	if k, ok := perevod.LookupKind(gvk.Kind); ok && k.APIVersion == gvk.GroupVersion().String() {
+		kind = k
+	}
+	return m, kind, nil
 }
 
 func (c *clients) resource(m *meta.RESTMapping, ns string) dynamic.ResourceInterface {

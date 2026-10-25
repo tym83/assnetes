@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: obrabotchik
+  namespace: assnetes-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: obrabotchik-assnetes-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: obrabotchik
+    namespace: assnetes-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: obrabotchik
+  namespace: assnetes-system
+  labels:
+    prilozhenie: obrabotchik
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/metki: '{"prilozhenie":"приложение=obrabotchik"}'
+    xn--80ajopdiccfkc.xn--90a0bg/imena: '{"obrabotchik":"обработчик"}'
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      prilozhenie: obrabotchik
+  template:
+    metadata:
+      labels:
+        prilozhenie: obrabotchik
+      annotations:
+        xn--80ajopdiccfkc.xn--90a0bg/metki: '{"prilozhenie":"приложение=obrabotchik"}'
+    spec:
+      serviceAccountName: obrabotchik
+      containers:
+        - name: obrabotchik
+          image: ghcr.io/tym83/assnetes-obrabotchik:main
+          imagePullPolicy: Always
+          args:
+            - --service=obrabotchik
+            - --id=obrabotchik
+            - --namespace=assnetes-system
+            - /obrabotki/proizvodstvennyj-kalendar
+            - /obrabotki/kursy-valyut
+            - /obrabotki/data-zapreta
+            - /obrabotki/udalenie-pomechennyh
+            - /obrabotki/akt-sverki
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          ports:
+            - name: proverki
+              containerPort: 9443
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: obrabotchik
+  namespace: assnetes-system
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/metki: '{"prilozhenie":"приложение=obrabotchik"}'
+spec:
+  selector:
+    prilozhenie: obrabotchik
+  ports:
+    - port: 443
+      targetPort: 9443

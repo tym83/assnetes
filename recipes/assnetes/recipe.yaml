@@ -1,0 +1,16 @@
+apiVersion: kubepkg.dev/v1
+kind: Recipe
+metadata:
+  name: assnetes
+  annotations:
+    kubepkg.dev/description: "1Ж:Оркестратор 8 целиком: обработки и все продукты из прайс-листа"
+    kubepkg.dev/home: https://github.com/tym83/assnetes
+spec:
+  version: 0.1.0
+  build: 1
+  package:
+    variants:
+      - name: default
+        requires:
+          - {package: assnetes-obrabotki, version: "~0.1"}
+          - {package: 1c-bitrix, version: "~0.1"}

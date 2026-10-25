@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: obrabotchik-bitrix
+  namespace: assnetes-bitrix
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: obrabotchik-bitrix-assnetes-bitrix
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: obrabotchik-bitrix
+    namespace: assnetes-bitrix
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: obrabotchik-bitrix
+  namespace: assnetes-bitrix
+  labels:
+    prilozhenie: obrabotchik-bitrix
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/metki: '{"prilozhenie":"приложение=obrabotchik-bitrix"}'
+    xn--80ajopdiccfkc.xn--90a0bg/imena: '{"obrabotchik":"обработчик"}'
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      prilozhenie: obrabotchik-bitrix
+  template:
+    metadata:
+      labels:
+        prilozhenie: obrabotchik-bitrix
+      annotations:
+        xn--80ajopdiccfkc.xn--90a0bg/metki: '{"prilozhenie":"приложение=obrabotchik-bitrix"}'
+    spec:
+      serviceAccountName: obrabotchik-bitrix
+      containers:
+        - name: obrabotchik
+          image: ghcr.io/tym83/assnetes-obrabotchik:main
+          imagePullPolicy: Always
+          args:
+            - --service=obrabotchik-bitrix
+            - --id=obrabotchik-bitrix
+            - --namespace=assnetes-bitrix
+            - /obrabotki/bitrix
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          ports:
+            - name: proverki
+              containerPort: 9443
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: obrabotchik-bitrix
+  namespace: assnetes-bitrix
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/metki: '{"prilozhenie":"приложение=obrabotchik-bitrix"}'
+spec:
+  selector:
+    prilozhenie: obrabotchik-bitrix
+  ports:
+    - port: 443
+      targetPort: 9443

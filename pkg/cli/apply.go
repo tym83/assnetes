@@ -26,6 +26,8 @@ var metaGet = metav1.GetOptions{}
 
 const fieldManager = "1sctl"
 
+var applyOptions = metav1.ApplyOptions{FieldManager: fieldManager, Force: true}
+
 func newApplyCommand(o *options) *cobra.Command {
 	var files []string
 	var params []string
@@ -57,7 +59,11 @@ func newApplyCommand(o *options) *cobra.Command {
 				objs = append(objs, got...)
 			}
 			if dryRun {
-				return o.printObjects(objs, "yaml")
+				format := o.output
+				if format == "" || format == "таблица" {
+					format = "yaml"
+				}
+				return o.printObjects(objs, format)
 			}
 			return o.apply(cmd.Context(), objs)
 		},
@@ -113,8 +119,8 @@ func loadYAML(data []byte) ([]*bsl.Map, error) {
 		if err != nil {
 			return nil, err
 		}
-		if v == nil {
-			continue
+		if _, isMap := v.(*bsl.Map); !isMap {
+			continue // an empty document, or one of comments only
 		}
 		obj, err := perevod.ToAPI(v)
 		if err != nil {
@@ -191,7 +197,7 @@ func (o *options) applyOne(ctx context.Context, c *clients, obj *bsl.Map) error 
 	if err != nil {
 		return err
 	}
-	m, kind, err := c.resolveKind(u.GetKind())
+	m, kind, err := c.mappingOf(u)
 	if err != nil {
 		return err
 	}

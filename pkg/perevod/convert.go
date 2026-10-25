@@ -181,7 +181,9 @@ func (w *walk) value(path, field string, v bsl.Value) bsl.Value {
 		return arr
 	}
 	if !isObject(v) {
-		if s, ok := v.(string); ok && isNameField(field) && !IsAPIName(s) && s != "" {
+		// names inside an object are transliterated only when they are not
+		// Latin already: MYSQL_ROOT_PASSWORD is an environment variable, not a typo
+		if s, ok := v.(string); ok && isNameField(field) && !isASCII(s) {
 			w.names[Name(s)] = s
 			return Name(s)
 		}
@@ -237,6 +239,15 @@ func configKey(k string) string {
 		base, ext = k[:i], k[i:]
 	}
 	return Translit(base) + ext
+}
+
+func isASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 0x80 {
+			return false
+		}
+	}
+	return true
 }
 
 func isNameField(field string) bool {

@@ -1,6 +1,7 @@
 package bsl
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math"
 	"strings"
@@ -741,4 +742,26 @@ func registerCollections(it *Interp) {
 		return a.Fixed(), nil
 	}, "ФиксированныйМассив", "FixedArray")
 	it.DefineType(func(_ *Interp, _ []Value) (Value, error) { return NewValueTable(), nil }, "ТаблицаЗначений", "ValueTable")
+	it.DefineType(func(_ *Interp, args []Value) (Value, error) {
+		if len(args) > 0 {
+			return &UUID{s: ToString(args[0])}, nil
+		}
+		var b [16]byte
+		if _, err := rand.Read(b[:]); err != nil {
+			return nil, err
+		}
+		b[6] = b[6]&0x0f | 0x40
+		b[8] = b[8]&0x3f | 0x80
+		return &UUID{s: fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])}, nil
+	}, "УникальныйИдентификатор", "UUID")
+}
+
+// UUID is УникальныйИдентификатор; Строка() gives its text.
+type UUID struct{ s string }
+
+func (*UUID) TypeName() string { return "УникальныйИдентификатор" }
+func (u *UUID) String() string { return u.s }
+func (u *UUID) EqualTo(v Value) bool {
+	o, ok := v.(*UUID)
+	return ok && o.s == u.s
 }

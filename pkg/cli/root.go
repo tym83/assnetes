@@ -50,7 +50,7 @@ func NewRootCommand() *cobra.Command {
 	f.StringVar(&o.context, "контекст", "", "кластер из списка информационных баз")
 	f.StringVar(&o.namespace, "подразделение", "", "подразделение (namespace)")
 	f.BoolVar(&o.allNS, "все-подразделения", false, "по всем подразделениям")
-	f.StringVar(&o.output, "вывод", "", "таблица, bsl, yaml или json")
+	f.StringVar(&o.output, "вывод", "", "таблица, bsl, yaml, json или api (YAML как в API, без перевода)")
 	f.BoolVar(&o.quiet, "тихо", false, "без комментариев бухгалтерии")
 	f.BoolVar(&o.director, "я-директор", false, "без очереди и без обеда")
 	// English spellings for muscle memory and scripts.
@@ -72,6 +72,7 @@ func NewRootCommand() *cobra.Command {
 		newLogsCommand(o),
 		newKindsCommand(o),
 		newRunCommand(o),
+		newVvodCommand(o),
 		&cobra.Command{
 			Use:     "версия",
 			Aliases: []string{"version"},
@@ -81,6 +82,7 @@ func NewRootCommand() *cobra.Command {
 			},
 		},
 	)
+	newPaketyCommand(root)
 	return root
 }
 
