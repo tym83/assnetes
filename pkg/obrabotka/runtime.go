@@ -24,6 +24,7 @@ import (
 
 	"github.com/tym83/assnetes/pkg/bsl"
 	"github.com/tym83/assnetes/pkg/perevod"
+	"github.com/tym83/assnetes/pkg/zapros"
 )
 
 // Runner hosts one обработка: its interpreter, shared by the reconciler and
@@ -84,6 +85,7 @@ func NewRunner(ob *Obrabotka, mgr manager.Manager) (*Runner, error) {
 	registerHTTP(it)
 	registerXML(it)
 	registerHelpers(it)
+	zapros.Register(it, r.cluster)
 	r.it = it
 	r.cluster.ctx = context.Background()
 	s, err := it.Load(ob.Module)

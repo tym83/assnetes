@@ -406,3 +406,12 @@ func plainCopy(v bsl.Value) bsl.Value {
 	}
 	return v
 }
+
+// Table gives the query language every object of a kind, in Russian form.
+func (cl *Cluster) Table(kind string) ([]bsl.Value, error) {
+	v, err := cl.list(kind, nil, "")
+	if err != nil {
+		return nil, err
+	}
+	return v.(*bsl.Array).Elems, nil
+}
