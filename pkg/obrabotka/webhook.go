@@ -19,9 +19,12 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -211,14 +214,14 @@ func (r *Runner) validate(ctx context.Context, method string, ar *admissionv1.Ad
 type webhookServer struct {
 	opts   WebhookOptions
 	c      client.Client
+	reader client.Reader // uncached: Secrets are not worth watching
 	checks []*check
 }
 
 func (s *webhookServer) NeedLeaderElection() bool { return false }
 
 func (s *webhookServer) Start(ctx context.Context) error {
-	host := fmt.Sprintf("%s.%s.svc", s.opts.Service, s.opts.Namespace)
-	caPEM, cert, err := selfSigned(host)
+	caPEM, cert, err := s.certificate(ctx)
 	if err != nil {
 		return err
 	}
@@ -347,12 +350,57 @@ func toUnstructuredTyped(obj any) (*unstructured.Unstructured, error) {
 	return u, u.UnmarshalJSON(b)
 }
 
+// certificate is the serving certificate every replica shares, kept in a
+// Secret next to the Service. Each replica making its own would leave the
+// API server trusting only the last one, and the checks served by the
+// others would fail the handshake and be skipped.
+func (s *webhookServer) certificate(ctx context.Context) ([]byte, tls.Certificate, error) {
+	host := fmt.Sprintf("%s.%s.svc", s.opts.Service, s.opts.Namespace)
+	key := types.NamespacedName{Namespace: s.opts.Namespace, Name: s.opts.Service + "-tls"}
+	for attempt := 0; attempt < 3; attempt++ {
+		sec := &corev1.Secret{}
+		err := s.reader.Get(ctx, key, sec)
+		if err == nil {
+			cert, cerr := tls.X509KeyPair(sec.Data["tls.crt"], sec.Data["tls.key"])
+			if cerr == nil && len(sec.Data["ca.crt"]) > 0 && cert.Leaf != nil && cert.Leaf.VerifyHostname(host) == nil {
+				return sec.Data["ca.crt"], cert, nil
+			}
+		} else if !apierrors.IsNotFound(err) {
+			return nil, tls.Certificate{}, err
+		}
+		caPEM, certPEM, keyPEM, err := selfSigned(host)
+		if err != nil {
+			return nil, tls.Certificate{}, err
+		}
+		fresh := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace},
+			Type:       corev1.SecretTypeTLS,
+			Data:       map[string][]byte{"ca.crt": caPEM, "tls.crt": certPEM, "tls.key": keyPEM},
+		}
+		if sec.ResourceVersion == "" {
+			err = s.c.Create(ctx, fresh)
+		} else {
+			fresh.ResourceVersion = sec.ResourceVersion
+			err = s.c.Update(ctx, fresh)
+		}
+		if apierrors.IsAlreadyExists(err) || apierrors.IsConflict(err) {
+			continue // another replica was first: take its certificate
+		}
+		if err != nil {
+			return nil, tls.Certificate{}, err
+		}
+		cert, err := tls.X509KeyPair(certPEM, keyPEM)
+		return caPEM, cert, err
+	}
+	return nil, tls.Certificate{}, fmt.Errorf("сертификат проверок в %s не удалось ни прочитать, ни записать", key)
+}
+
 // selfSigned makes a CA and a serving certificate for host, valid ten
-// years: the обработчик makes new ones every start anyway.
-func selfSigned(host string) ([]byte, tls.Certificate, error) {
+// years, in PEM.
+func selfSigned(host string) (caPEM, certPEM, keyPEM []byte, err error) {
 	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		return nil, tls.Certificate{}, err
+		return nil, nil, nil, err
 	}
 	now := time.Now()
 	caTmpl := &x509.Certificate{
@@ -362,11 +410,11 @@ func selfSigned(host string) ([]byte, tls.Certificate, error) {
 	}
 	caDER, err := x509.CreateCertificate(rand.Reader, caTmpl, caTmpl, &caKey.PublicKey, caKey)
 	if err != nil {
-		return nil, tls.Certificate{}, err
+		return nil, nil, nil, err
 	}
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		return nil, tls.Certificate{}, err
+		return nil, nil, nil, err
 	}
 	tmpl := &x509.Certificate{
 		SerialNumber: big.NewInt(2), Subject: pkix.Name{CommonName: host},
@@ -378,23 +426,21 @@ func selfSigned(host string) ([]byte, tls.Certificate, error) {
 	caCert, _ := x509.ParseCertificate(caDER)
 	der, err := x509.CreateCertificate(rand.Reader, tmpl, caCert, &key.PublicKey, caKey)
 	if err != nil {
-		return nil, tls.Certificate{}, err
+		return nil, nil, nil, err
 	}
 	keyDER, err := x509.MarshalECPrivateKey(key)
 	if err != nil {
-		return nil, tls.Certificate{}, err
+		return nil, nil, nil, err
 	}
-	cert, err := tls.X509KeyPair(
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caDER}),
 		pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}),
-		pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}),
-	)
-	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caDER}), cert, err
+		pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}), nil
 }
 
 // SetupWebhooks serves the checks of the обработки that have
 // ОбработкаПроверкиЗаполнения.
 func SetupWebhooks(mgr manager.Manager, runners []*Runner, opts WebhookOptions) error {
-	s := &webhookServer{opts: opts, c: mgr.GetClient()}
+	s := &webhookServer{opts: opts, c: mgr.GetClient(), reader: mgr.GetAPIReader()}
 	for _, r := range runners {
 		for _, method := range r.ob.Checks {
 			rule, err := r.ob.webhook(method)
