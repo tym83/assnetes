@@ -257,6 +257,19 @@ func isNameField(field string) bool {
 	return strings.HasSuffix(field, "Name") && field != "pathType"
 }
 
+// mapStrings applies f to every string of a list, as finalizers are.
+func mapStrings(v bsl.Value, f func(string) string) bsl.Value {
+	els, ok := elements(v)
+	if !ok {
+		return v
+	}
+	arr := bsl.NewArray()
+	for _, e := range els {
+		arr.Elems = append(arr.Elems, f(bsl.ToString(e)))
+	}
+	return arr
+}
+
 // plain copies a value into Соответствия and Массивы without translating.
 func plain(v bsl.Value) bsl.Value {
 	if els, ok := elements(v); ok {
@@ -297,6 +310,8 @@ func (w *walk) metadata(v bsl.Value) (*bsl.Map, error) {
 			}
 		case "namespace":
 			out.Insert("namespace", Name(bsl.ToString(vals[i])))
+		case "finalizers":
+			out.Insert("finalizers", mapStrings(vals[i], AnnotationKey))
 		case "labels":
 			labels = bsl.NewMap()
 			lk, lv, _ := entries(vals[i])
@@ -334,7 +349,14 @@ func (w *walk) metadata(v bsl.Value) (*bsl.Map, error) {
 // FromAPI translates an object of the API for people: Russian fields,
 // kinds and names as they were written.
 func FromAPI(obj bsl.Value) (*bsl.Map, error) {
-	r := &reverse{labels: map[string][2]string{}, names: map[string]string{}}
+	return FromAPIIn(obj, nil)
+}
+
+// FromAPIIn is FromAPI that also gives the namespace as it was written:
+// nsName knows it from the namespace's own annotation, which the object
+// does not carry.
+func FromAPIIn(obj bsl.Value, nsName func(string) string) (*bsl.Map, error) {
+	r := &reverse{labels: map[string][2]string{}, names: map[string]string{}, nsName: nsName}
 	r.collect(obj)
 	return r.fromAPI(obj)
 }
@@ -344,6 +366,7 @@ func FromAPI(obj bsl.Value) (*bsl.Map, error) {
 type reverse struct {
 	labels map[string][2]string // "ключ=значение" in the API → as written
 	names  map[string]string
+	nsName func(string) string
 }
 
 func (r *reverse) collect(v bsl.Value) {
@@ -499,6 +522,14 @@ func (r *reverse) metadataFromAPI(v bsl.Value) bsl.Value {
 				name = orig
 			}
 			out.Insert(FieldToRu(k), name)
+		case "finalizers":
+			out.Insert(FieldToRu(k), mapStrings(vals[i], AnnotationKeyRu))
+		case "namespace":
+			ns := bsl.ToString(vals[i])
+			if r.nsName != nil {
+				ns = r.nsName(ns)
+			}
+			out.Insert(FieldToRu(k), ns)
 		case "labels":
 			labels := bsl.NewMap()
 			lk, lv, _ := entries(vals[i])

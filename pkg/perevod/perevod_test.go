@@ -141,3 +141,39 @@ func TestLatinNamesInsideObjectsStay(t *testing.T) {
 		t.Errorf("got %s", js)
 	}
 }
+
+func TestNamespaceAsWritten(t *testing.T) {
+	obj := parse(t, `{"apiVersion":"v1","kind":"Pod","metadata":{"name":"veb","namespace":"romashka"}}`)
+	names := map[string]string{"romashka": "Ромашка"}
+	back, err := FromAPIIn(obj, func(ns string) string {
+		if orig, ok := names[ns]; ok {
+			return orig
+		}
+		return ns
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ru, _ := bsl.WriteJSON(back, ""); !strings.Contains(ru, `"Подразделение":"Ромашка"`) {
+		t.Errorf("namespace not as written:\n%s", ru)
+	}
+	plain, _ := FromAPI(obj)
+	if ru, _ := bsl.WriteJSON(plain, ""); !strings.Contains(ru, `"Подразделение":"romashka"`) {
+		t.Errorf("without names the namespace stays as in the API:\n%s", ru)
+	}
+}
+
+func TestFinalizersInRussian(t *testing.T) {
+	api, err := ToAPI(parse(t, `{"Вид":"Справочник","Метаданные":{"Имя":"н","Финализаторы":["оркестратор.бух/1c-predpriyatie"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	js, _ := bsl.WriteJSON(api, "")
+	if !strings.Contains(js, `"finalizers":["`+Group+`/1c-predpriyatie"]`) {
+		t.Fatalf("finalizer not in the API group:\n%s", js)
+	}
+	back, _ := FromAPI(parse(t, js))
+	if ru, _ := bsl.WriteJSON(back, ""); !strings.Contains(ru, `"Финализаторы":["оркестратор.бух/1c-predpriyatie"]`) {
+		t.Errorf("finalizer not back in Russian:\n%s", ru)
+	}
+}

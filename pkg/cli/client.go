@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -26,6 +28,30 @@ type clients struct {
 	typed     kubernetes.Interface
 	mapper    meta.ResettableRESTMapper
 	namespace string // of the context, when no flag says otherwise
+
+	nsOnce  sync.Once
+	nsNames map[string]string // namespace in the API → as written
+}
+
+// nsName is a namespace as it was written, from the annotation the
+// namespace keeps; namespaces are read once per run.
+func (c *clients) nsName(name string) string {
+	c.nsOnce.Do(func() {
+		c.nsNames = map[string]string{}
+		list, err := c.typed.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			return
+		}
+		for _, n := range list.Items {
+			if orig := n.Annotations[perevod.AnnName]; orig != "" && perevod.Translit(orig) == n.Name {
+				c.nsNames[n.Name] = orig
+			}
+		}
+	})
+	if orig, ok := c.nsNames[name]; ok {
+		return orig
+	}
+	return name
 }
 
 func (o *options) client() (*clients, error) {

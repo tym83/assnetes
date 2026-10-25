@@ -78,3 +78,33 @@ jobs:
           path: _site
       - id: deploy
         uses: actions/deploy-pages@v4
+
+  # 1сctl for people who want to try: a GitHub release with the binaries,
+  # named in Latin, since GitHub mangles other letters in asset names.
+  binaries:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build 1сctl
+        run: |
+          mkdir dist
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            os=${target%/*} arch=${target#*/} ext=""
+            [ "$os" = windows ] && ext=.exe
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath \
+              -ldflags "-s -w -X github.com/tym83/assnetes/pkg/cli.Version=${GITHUB_REF_NAME}" \
+              -o "dist/1sctl-${os}-${arch}${ext}" ./cmd/1sctl
+          done
+          (cd dist && sha256sum * > SHA256SUMS)
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pre=""
+          case "$GITHUB_REF_NAME" in *-*) pre=--prerelease ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes $pre

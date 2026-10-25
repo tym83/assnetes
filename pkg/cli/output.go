@@ -28,7 +28,11 @@ func (o *options) printObjects(objs []*bsl.Map, format string) error {
 			fmt.Fprint(o.out, y)
 			continue
 		}
-		ru, err := perevod.FromAPI(obj)
+		var nsName func(string) string
+		if o.clients != nil {
+			nsName = o.clients.nsName
+		}
+		ru, err := perevod.FromAPIIn(obj, nsName)
 		if err != nil {
 			return err
 		}

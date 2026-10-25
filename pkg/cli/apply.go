@@ -251,8 +251,13 @@ func (o *options) reportError(err error, obj *bsl.Map) {
 }
 
 func (o *options) reportErrorVars(err error, v golos.Vars) {
-	fmt.Fprintln(o.errOut, red(isTTY(o.errOut), "✗ ")+o.golos.Error(err, v))
-	fmt.Fprintln(o.errOut, dim(isTTY(o.errOut), "  "+err.Error()))
+	msg := o.golos.Error(err, v)
+	fmt.Fprintln(o.errOut, red(isTTY(o.errOut), "✗ ")+msg)
+	// the original, unless the message already says all of it: a refusal
+	// carries the check's own words
+	if golos.ErrorKind(err) != "otkaz" && !strings.Contains(msg, err.Error()) {
+		fmt.Fprintln(o.errOut, dim(isTTY(o.errOut), "  "+err.Error()))
+	}
 }
 
 func agree(k *perevod.Kind, m, f, n, p string) string {

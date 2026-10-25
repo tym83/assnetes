@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -63,7 +64,17 @@ func newPaketyCommand(root *cobra.Command) {
 				// cobra executes a subcommand through its root: run the root
 				// again, as «1сctl пакеты <command>»
 				root.SetArgs(append([]string{"пакеты", target}, translatePackages(args)...))
-				return root.ExecuteContext(cmd.Context())
+				if target != "list" && target != "search" {
+					return root.ExecuteContext(cmd.Context())
+				}
+				var buf bytes.Buffer
+				root.SetOut(&buf)
+				err := root.ExecuteContext(cmd.Context())
+				root.SetOut(nil)
+				if terr := translateTable(cmd.OutOrStdout(), buf.String()); err == nil {
+					err = terr
+				}
+				return err
 			},
 		})
 	}

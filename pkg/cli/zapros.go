@@ -41,7 +41,7 @@ func (d *clusterData) Table(kind string) ([]bsl.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		ru, err := perevod.FromAPI(v)
+		ru, err := perevod.FromAPIIn(v, d.c.nsName)
 		if err != nil {
 			return nil, err
 		}

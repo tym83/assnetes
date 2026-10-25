@@ -186,7 +186,7 @@ func (g *gui) spisok(w http.ResponseWriter, r *http.Request) {
 		g.fail(w, err, golos.Vars{"Вид": r.PathValue("vid")})
 		return
 	}
-	header, rows := tableFor(m.GroupVersionKind.Kind, list.Items, m.Scope.Name() == meta.RESTScopeNameNamespace)
+	header, rows := tableFor(m.GroupVersionKind.Kind, list.Items, m.Scope.Name() == meta.RESTScopeNameNamespace, c.nsName)
 	type stroka struct {
 		Ячейки        []string
 		Имя, ИмяAPI   string
@@ -196,7 +196,7 @@ func (g *gui) spisok(w http.ResponseWriter, r *http.Request) {
 	var out []stroka
 	byName := map[string]*unstructured.Unstructured{}
 	for i := range list.Items {
-		byName[list.Items[i].GetNamespace()+"/"+displayName(&list.Items[i])] = &list.Items[i]
+		byName[c.nsName(list.Items[i].GetNamespace())+"/"+displayName(&list.Items[i])] = &list.Items[i]
 	}
 	for _, row := range rows {
 		s := stroka{Ячейки: row}
@@ -229,8 +229,8 @@ func (g *gui) obekt(w http.ResponseWriter, r *http.Request) {
 		g.fail(w, err, nil)
 		return
 	}
-	ns := r.PathValue("ns")
-	if ns == "-" {
+	ns := perevod.Name(r.PathValue("ns"))
+	if r.PathValue("ns") == "-" {
 		ns = ""
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
@@ -241,7 +241,7 @@ func (g *gui) obekt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, _ := fromUnstructured(u)
-	ru, err := perevod.FromAPI(v)
+	ru, err := perevod.FromAPIIn(v, c.nsName)
 	if err != nil {
 		g.fail(w, err, nil)
 		return
@@ -275,7 +275,7 @@ func (g *gui) dvizheniya(ctx context.Context, c *clients, owner *unstructured.Un
 		for i := range list.Items {
 			for _, ref := range list.Items[i].GetOwnerReferences() {
 				if ref.UID == owner.GetUID() {
-					out = append(out, map[string]string{"Вид": k.Ru, "Имя": displayName(&list.Items[i]), "Подразделение": ns})
+					out = append(out, map[string]string{"Вид": k.Ru, "Имя": displayName(&list.Items[i]), "Подразделение": c.nsName(ns)})
 				}
 			}
 		}
@@ -337,8 +337,8 @@ func (g *gui) pometit(w http.ResponseWriter, r *http.Request) {
 		g.fail(w, err, nil)
 		return
 	}
-	ns := r.PathValue("ns")
-	if ns == "-" {
+	ns := perevod.Name(r.PathValue("ns"))
+	if r.PathValue("ns") == "-" {
 		ns = ""
 	}
 	value := `"` + time.Now().UTC().Format(time.RFC3339) + `"`
