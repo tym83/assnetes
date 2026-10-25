@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  KUBEPKG_REF: v1.3.0
+  KUBEPKG_REF: v1.3.1
   IMAGE: ghcr.io/${{ github.repository_owner }}/assnetes-obrabotchik
   REGISTRY: oci://ghcr.io/${{ github.repository_owner }}/assnetes-packages
   BASE_INDEX: https://${{ github.repository_owner }}.github.io/assnetes/index.yaml

@@ -31,7 +31,7 @@ jobs:
         run: diff keys/index.pub pkg/cli/vvod/index.pub
       - name: Recipes build
         run: |
-          go install github.com/kuberoot-dev/kubepkg/cmd/kubepkg@v1.3.0
+          go install github.com/kuberoot-dev/kubepkg/cmd/kubepkg@v1.3.1
           kubepkg validate recipes
       - name: 1сctl builds for every platform people run it on
         run: |
