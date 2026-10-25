@@ -103,7 +103,7 @@ func (o *options) get(ctx context.Context, kindName string, names []string, sele
 		return nil
 	}
 	namespaced := m.Scope.Name() == meta.RESTScopeNameNamespace
-	header, rows := tableFor(m.GroupVersionKind.Kind, items, namespaced && o.allNS)
+	header, rows := tableFor(m.GroupVersionKind.Kind, items, namespaced && o.allNS, c.nsName)
 	o.table(header, rows)
 	o.calendar()
 	return nil
@@ -131,9 +131,7 @@ func displayName(u *unstructured.Unstructured) string {
 	return u.GetName()
 }
 
-func displayNS(u *unstructured.Unstructured) string { return u.GetNamespace() }
-
-func tableFor(kind string, items []unstructured.Unstructured, withNS bool) ([]string, [][]string) {
+func tableFor(kind string, items []unstructured.Unstructured, withNS bool, nsName func(string) string) ([]string, [][]string) {
 	header := []string{"ИМЯ"}
 	if withNS {
 		header = []string{"ПОДРАЗДЕЛЕНИЕ", "ИМЯ"}
@@ -162,7 +160,7 @@ func tableFor(kind string, items []unstructured.Unstructured, withNS bool) ([]st
 		u := &items[i]
 		row := []string{displayName(u)}
 		if withNS {
-			row = []string{displayNS(u), displayName(u)}
+			row = []string{nsName(u.GetNamespace()), displayName(u)}
 		}
 		state := "✓ проведён"
 		switch kind {

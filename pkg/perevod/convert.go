@@ -334,7 +334,14 @@ func (w *walk) metadata(v bsl.Value) (*bsl.Map, error) {
 // FromAPI translates an object of the API for people: Russian fields,
 // kinds and names as they were written.
 func FromAPI(obj bsl.Value) (*bsl.Map, error) {
-	r := &reverse{labels: map[string][2]string{}, names: map[string]string{}}
+	return FromAPIIn(obj, nil)
+}
+
+// FromAPIIn is FromAPI that also gives the namespace as it was written:
+// nsName knows it from the namespace's own annotation, which the object
+// does not carry.
+func FromAPIIn(obj bsl.Value, nsName func(string) string) (*bsl.Map, error) {
+	r := &reverse{labels: map[string][2]string{}, names: map[string]string{}, nsName: nsName}
 	r.collect(obj)
 	return r.fromAPI(obj)
 }
@@ -344,6 +351,7 @@ func FromAPI(obj bsl.Value) (*bsl.Map, error) {
 type reverse struct {
 	labels map[string][2]string // "ключ=значение" in the API → as written
 	names  map[string]string
+	nsName func(string) string
 }
 
 func (r *reverse) collect(v bsl.Value) {
@@ -499,6 +507,12 @@ func (r *reverse) metadataFromAPI(v bsl.Value) bsl.Value {
 				name = orig
 			}
 			out.Insert(FieldToRu(k), name)
+		case "namespace":
+			ns := bsl.ToString(vals[i])
+			if r.nsName != nil {
+				ns = r.nsName(ns)
+			}
+			out.Insert(FieldToRu(k), ns)
 		case "labels":
 			labels := bsl.NewMap()
 			lk, lv, _ := entries(vals[i])

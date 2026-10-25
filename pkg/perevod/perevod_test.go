@@ -141,3 +141,24 @@ func TestLatinNamesInsideObjectsStay(t *testing.T) {
 		t.Errorf("got %s", js)
 	}
 }
+
+func TestNamespaceAsWritten(t *testing.T) {
+	obj := parse(t, `{"apiVersion":"v1","kind":"Pod","metadata":{"name":"veb","namespace":"romashka"}}`)
+	names := map[string]string{"romashka": "Ромашка"}
+	back, err := FromAPIIn(obj, func(ns string) string {
+		if orig, ok := names[ns]; ok {
+			return orig
+		}
+		return ns
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ru, _ := bsl.WriteJSON(back, ""); !strings.Contains(ru, `"Подразделение":"Ромашка"`) {
+		t.Errorf("namespace not as written:\n%s", ru)
+	}
+	plain, _ := FromAPI(obj)
+	if ru, _ := bsl.WriteJSON(plain, ""); !strings.Contains(ru, `"Подразделение":"romashka"`) {
+		t.Errorf("without names the namespace stays as in the API:\n%s", ru)
+	}
+}
