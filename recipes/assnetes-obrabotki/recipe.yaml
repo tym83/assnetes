@@ -1,0 +1,26 @@
+apiVersion: kubepkg.dev/v1
+kind: Recipe
+metadata:
+  name: assnetes-obrabotki
+  annotations:
+    kubepkg.dev/description: "Обработки 1Ж:Оркестратора 8: производственный календарь, курсы валют, дата запрета изменения, удаление помеченных, акт сверки"
+    kubepkg.dev/home: https://github.com/tym83/assnetes
+spec:
+  version: 0.1.0
+  build: 1
+  sources:
+    manifests:
+      dir: manifests
+  charts:
+    obrabotchik:
+      from: [manifests]
+  package:
+    provides: [assnetes-obrabotki]
+    rollback:
+      safe: true
+    variants:
+      - name: default
+        components:
+          - name: obrabotchik
+            path: obrabotchik
+            install: {namespace: assnetes-system}

@@ -21,6 +21,12 @@ jobs:
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
       - run: go test ./...
+      - name: Manifests of the packages are generated from deploy/obrabotchik.bsl
+        run: hack/gen-recipes.sh && git diff --exit-code recipes
+      - name: Recipes build
+        run: |
+          go install github.com/kuberoot-dev/kubepkg/cmd/kubepkg@v1.3.0
+          kubepkg validate recipes
       - name: 1сctl builds for every platform people run it on
         run: |
           for p in linux/amd64 linux/arm64 darwin/arm64 darwin/amd64 windows/amd64; do
