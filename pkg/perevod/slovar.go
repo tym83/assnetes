@@ -150,6 +150,9 @@ var fieldPairs = [][2]string{
 	{"failureThreshold", "ПорогНеудач"}, {"timeoutSeconds", "ТаймаутСекунд"}, {"scheme", "Схема"},
 	{"loadBalancer", "Балансировщик"}, {"ingress", "Входящий"}, {"nodeInfo", "СведенияОбУзле"},
 	{"addresses", "Адреса"}, {"address", "ЗначениеАдреса"}, {"kubeletVersion", "ВерсияKubelet"},
+	{"volumeClaimTemplates", "ШаблоныЗаявок"}, {"serviceName", "ИмяУслуги"}, {"podManagementPolicy", "ПолитикаЗапускаПодов"},
+	{"fsGroup", "ГруппаФайлов"}, {"runAsUser", "ПользовательЗапуска"}, {"runAsGroup", "ГруппаЗапуска"},
+	{"metrics", "Показатели"}, {"averageUtilization", "СредняяЗагрузка"},
 	{"verbs", "Действия"}, {"apiGroups", "ГруппыAPI"}, {"apiGroup", "ГруппаAPI"}, {"subjects", "Субъекты"}, {"roleRef", "СсылкаНаРоль"},
 }
 
