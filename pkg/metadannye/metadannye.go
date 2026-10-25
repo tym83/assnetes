@@ -275,7 +275,7 @@ func schema(f Field) map[string]any {
 		s["maximum"] = *f.Max
 	}
 	if f.Default != nil {
-		s["default"] = f.Default
+		s["default"] = defaultOf(f)
 	}
 	if len(f.Enum) > 0 {
 		s["enum"] = f.Enum
@@ -359,4 +359,16 @@ func withRequired(s map[string]any, req []string) map[string]any {
 		s["required"] = req
 	}
 	return s
+}
+
+// defaultOf brings a default to the type of its реквизит: YAML reads «1»
+// as a number even where the реквизит is a Строка such as a CPU quantity.
+func defaultOf(f Field) any {
+	switch f.Type {
+	case "Строка", "Дата":
+		if _, ok := f.Default.(string); !ok {
+			return fmt.Sprint(f.Default)
+		}
+	}
+	return f.Default
 }
