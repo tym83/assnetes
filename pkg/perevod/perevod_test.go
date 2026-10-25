@@ -129,3 +129,15 @@ func TestLookupKindInAnyCase(t *testing.T) {
 		}
 	}
 }
+
+func TestLatinNamesInsideObjectsStay(t *testing.T) {
+	api, err := ToAPI(parse(t, `{"Вид": "Под", "Метаданные": {"Имя": "п"},
+		"Спецификация": {"Контейнеры": [{"Имя": "веб", "Окружение": [{"Имя": "MYSQL_ROOT_PASSWORD", "Значение": "x"}]}]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	js, _ := bsl.WriteJSON(api, "")
+	if !strings.Contains(js, `"name":"MYSQL_ROOT_PASSWORD"`) || !strings.Contains(js, `"name":"veb"`) {
+		t.Errorf("got %s", js)
+	}
+}
