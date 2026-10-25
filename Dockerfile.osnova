@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && mkdir -p /opt/1cv8 /home/usr1cv8/.1cv8/1C/1cv8 /var/www \
  && chown -R 999:999 /opt/1cv8 /home/usr1cv8 /var/www \
  && sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf \
+ && mkdir -p /var/run/apache2 /var/lock/apache2 /var/log/apache2 \
  && chown -R 999:999 /var/run/apache2 /var/log/apache2 /var/lock/apache2 /etc/apache2 \
  && printf 'кофта на стуле\n' > /var/www/healthz \
  && printf 'Alias /healthz /var/www/healthz\n<Location /healthz>\n  Require all granted\n</Location>\n' > /etc/apache2/conf-enabled/healthz.conf
