@@ -1,0 +1,18 @@
+apiVersion: kubepkg.dev/v1
+kind: Recipe
+metadata:
+  name: kuberoot-assnetes
+  annotations:
+    kubepkg.dev/description: "Дистрибутив kuberoot «1Ж:Оркестратор 8»: узел edge и всё из прайс-листа"
+    kubepkg.dev/home: https://github.com/tym83/assnetes
+spec:
+  version: 0.1.0
+  build: 1
+  package:
+    variants:
+      - name: default
+        requires:
+          # kinit installs kuberoot-<distribution>: the add-ons of edge,
+          # from the main repository, and 1Ж from the price list
+          - {package: kuberoot-edge, version: "~0.2"}
+          - {package: assnetes, version: "~0.1"}
