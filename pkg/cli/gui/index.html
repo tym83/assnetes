@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1Ж:Предприятие</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="zapusk" class="okno-zapuska">
+  <div class="okno">
+    <div class="okno-zagolovok"><span class="logo">1Ж</span> Запуск 1Ж:Предприятия</div>
+    <div class="okno-telo">
+      <div class="spisok-baz" id="bazy"><div class="pusto">Читаю список информационных баз…</div></div>
+      <div class="knopki-zapuska">
+        <button class="osn" id="otkryt">1Ж:Предприятие</button>
+        <button id="konfigurator">Конфигуратор</button>
+        <button disabled title="Добавляйте кластеры в kubeconfig">Добавить…</button>
+        <button disabled>Изменить…</button>
+        <button disabled title="Удалять кластеры — только по акту">Удалить</button>
+        <button id="vyhod">Выход</button>
+      </div>
+    </div>
+    <div class="okno-podval" id="put-bazy">Список информационных баз — это kubeconfig: каждый контекст — база.</div>
+  </div>
+</div>
+
+<div id="prilozhenie" hidden>
+  <header class="shapka">
+    <span class="logo">1Ж</span>
+    <span class="nazvanie" id="nazvanie-bazy">—</span>
+    <span class="poisk"><input id="poisk" placeholder="Поиск (Ctrl+F)"></span>
+    <span class="polzovatel">Администратор</span>
+    <button class="ikonka" id="knopka-devochki" title="Девочки из бухгалтерии">☏</button>
+  </header>
+  <div class="osnova">
+    <nav class="razdely" id="razdely"></nav>
+    <nav class="navigaciya" id="navigaciya"></nav>
+    <main class="rabochaya">
+      <div class="vkladki" id="vkladki"></div>
+      <div class="forma" id="forma"></div>
+    </main>
+  </div>
+  <aside class="devochki" id="devochki" hidden>
+    <div class="devochki-zagolovok">Девочки из бухгалтерии <button class="ikonka" id="zakryt-devochek">×</button></div>
+    <div class="devochki-lenta" id="lenta"></div>
+  </aside>
+  <div class="obed" id="obed" hidden>У меня обед. Касса откроется в 13:00.</div>
+</div>
+
+<div class="zatemnenie" id="zatemnenie" hidden>
+  <div class="okno preduprezhdenie">
+    <div class="okno-zagolovok"><span class="logo">1Ж</span> 1Ж:Предприятие</div>
+    <div class="okno-telo"><div class="znak">!</div><div id="tekst-oshibki"></div></div>
+    <details><summary>Подробнее</summary><pre id="podrobnee"></pre></details>
+    <div class="knopki-okna"><button class="osn" id="ok">OK</button></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

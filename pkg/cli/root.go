@@ -76,6 +76,7 @@ func NewRootCommand() *cobra.Command {
 		newKonfiguratorCommand(o),
 		newZaprosCommand(o),
 		newOSVCommand(o),
+		newGuiCommand(o),
 		&cobra.Command{
 			Use:     "версия",
 			Aliases: []string{"version"},

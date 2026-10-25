@@ -1,0 +1,107 @@
+:root {
+  --fon: #f4f1e6;
+  --panel: #fbf4d9;
+  --panel-temnee: #f1e3a6;
+  --linii: #ddd2a6;
+  --akcent: #d99a00;
+  --tekst: #3d3d3d;
+  --blednyj: #8a8572;
+  --zelenyj: #3f8f2f;
+  --krasnyj: #c23b2b;
+  --forma: #ffffff;
+  --vybor: #fff0a8;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+#prilozhenie { height: 100%; }
+html, body { margin: 0; height: 100%; }
+body { font: 13px/1.4 Arial, "Helvetica Neue", sans-serif; color: var(--tekst); background: var(--fon); }
+button { font: inherit; border: 1px solid #b9b19a; background: linear-gradient(#fff, #ece7d8); border-radius: 3px; padding: 4px 12px; cursor: pointer; color: var(--tekst); }
+button:hover { background: linear-gradient(#fff, #f4ecc8); }
+button:disabled { color: #aaa; cursor: default; background: #f2f0ea; }
+button.osn { background: linear-gradient(#5aa845, var(--zelenyj)); color: #fff; border-color: #33772a; font-weight: bold; }
+button.ikonka { border: none; background: none; font-size: 16px; padding: 2px 6px; }
+input, select, textarea { font: inherit; border: 1px solid #c8bf9f; border-radius: 3px; padding: 4px 6px; background: #fff; color: var(--tekst); }
+.logo { display: inline-block; background: var(--akcent); color: #fff; font-weight: bold; border-radius: 4px; padding: 1px 7px; }
+
+/* окно запуска */
+.okno-zapuska { display: flex; align-items: center; justify-content: center; min-height: 100%; padding: 16px; }
+.okno { background: var(--forma); border: 1px solid #c9bd8d; border-radius: 6px; box-shadow: 0 6px 24px rgba(0,0,0,.18); width: min(640px, 100%); }
+.okno-zagolovok { background: var(--panel-temnee); padding: 8px 12px; border-bottom: 1px solid var(--linii); font-weight: bold; border-radius: 6px 6px 0 0; }
+.okno-telo { display: flex; gap: 12px; padding: 12px; }
+.okno-podval { padding: 8px 12px; color: var(--blednyj); border-top: 1px solid var(--linii); font-size: 12px; }
+.spisok-baz { flex: 1; border: 1px solid var(--linii); min-height: 220px; max-height: 360px; overflow: auto; }
+.baza { padding: 6px 10px; cursor: pointer; border-bottom: 1px dotted var(--linii); }
+.baza small { display: block; color: var(--blednyj); }
+.baza.vybrana { background: var(--vybor); }
+.knopki-zapuska { display: flex; flex-direction: column; gap: 6px; width: 150px; }
+.pusto { padding: 12px; color: var(--blednyj); }
+
+/* приложение */
+.shapka { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: var(--panel); border-bottom: 1px solid var(--linii); height: 40px; }
+.nazvanie { font-size: 14px; }
+.poisk { margin-left: auto; }
+.poisk input { width: 220px; }
+.osnova { display: flex; height: calc(100% - 40px); }
+.razdely { width: 170px; background: var(--panel); border-right: 1px solid var(--linii); overflow: auto; }
+.razdel { padding: 9px 14px; cursor: pointer; border-left: 3px solid transparent; }
+.razdel:hover { background: var(--panel-temnee); }
+.razdel.vybran { background: var(--panel-temnee); border-left-color: var(--akcent); font-weight: bold; }
+.navigaciya { width: 220px; border-right: 1px solid var(--linii); background: #fffdf4; overflow: auto; padding: 8px 0; }
+.navigaciya h4 { margin: 8px 14px 4px; color: var(--blednyj); font-weight: normal; font-size: 12px; text-transform: uppercase; }
+.navigaciya a { display: block; padding: 4px 14px; color: #2958a8; text-decoration: none; cursor: pointer; }
+.navigaciya a:hover { text-decoration: underline; }
+.rabochaya { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.vkladki { display: flex; gap: 2px; padding: 4px 8px 0; background: var(--fon); border-bottom: 1px solid var(--linii); overflow-x: auto; }
+.vkladka { padding: 5px 10px; background: #ece7d6; border: 1px solid var(--linii); border-bottom: none; border-radius: 4px 4px 0 0; cursor: pointer; white-space: nowrap; }
+.vkladka.aktivna { background: var(--forma); font-weight: bold; }
+.vkladka .zakryt { margin-left: 6px; color: var(--blednyj); }
+.forma { flex: 1; overflow: auto; background: var(--forma); padding: 12px 16px; }
+.forma h1 { font-size: 18px; font-weight: normal; margin: 0 0 10px; }
+.panel-knopok { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.panel-knopok .razdelitel { flex: 1; }
+table.spisok { border-collapse: collapse; width: 100%; }
+table.spisok th { text-align: left; background: #f3efe0; border: 1px solid var(--linii); padding: 4px 8px; font-weight: normal; color: #555; position: sticky; top: 0; }
+table.spisok td { border: 1px solid #eee7cf; padding: 3px 8px; white-space: nowrap; }
+table.spisok tr:hover td { background: #fffbe6; }
+table.spisok tr.vybrana td { background: var(--vybor); }
+.znachok { width: 22px; text-align: center; }
+.proveden { color: var(--zelenyj); font-weight: bold; }
+.pomechen { color: var(--krasnyj); font-weight: bold; }
+.zapisan { color: var(--blednyj); }
+.oshibka-provedeniya { color: var(--akcent); font-weight: bold; }
+.rekvizity { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin-bottom: 12px; }
+.rekvizity .ima { color: var(--blednyj); }
+.zakladki { display: flex; gap: 2px; border-bottom: 1px solid var(--linii); margin: 10px 0; }
+.zakladka { padding: 5px 12px; cursor: pointer; border: 1px solid transparent; border-bottom: none; }
+.zakladka.aktivna { border-color: var(--linii); background: #fffdf4; border-radius: 4px 4px 0 0; }
+textarea.kod { width: 100%; min-height: 360px; font: 12px/1.45 Menlo, Consolas, monospace; white-space: pre; }
+pre.derevo { font: 12px/1.45 Menlo, Consolas, monospace; background: #fffdf4; border: 1px solid #eee7cf; padding: 8px; overflow: auto; }
+.otchet-zagolovok { font-weight: bold; font-size: 15px; margin: 0 0 4px; }
+.otchet-podzagolovok { color: var(--blednyj); margin-bottom: 10px; }
+.uvedomlenie { position: fixed; right: 16px; bottom: 16px; background: #fffbe6; border: 1px solid var(--akcent); border-radius: 6px; padding: 10px 14px; box-shadow: 0 4px 14px rgba(0,0,0,.15); max-width: 380px; z-index: 30; }
+.uvedomlenie .kto { color: var(--blednyj); font-size: 12px; }
+
+/* девочки */
+.devochki { position: fixed; right: 16px; bottom: 16px; width: 320px; max-height: 60%; background: #fff; border: 1px solid var(--linii); border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.15); display: flex; flex-direction: column; z-index: 20; }
+.devochki-zagolovok { background: var(--panel-temnee); padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+.devochki-lenta { overflow: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.soobshchenie { background: #f6f2e3; border-radius: 8px; padding: 6px 9px; }
+.soobshchenie b { display: block; font-size: 11px; color: var(--akcent); }
+.obed { position: fixed; top: 48px; left: 50%; transform: translateX(-50%); background: var(--krasnyj); color: #fff; padding: 6px 14px; border-radius: 4px; z-index: 25; }
+
+/* предупреждение */
+.zatemnenie { position: fixed; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 40; }
+.preduprezhdenie .okno-telo { align-items: flex-start; }
+.znak { background: var(--akcent); color: #fff; font-weight: bold; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex: none; }
+.preduprezhdenie details { padding: 0 12px 8px; }
+.preduprezhdenie pre { white-space: pre-wrap; font-size: 11px; color: var(--blednyj); }
+.knopki-okna { display: flex; justify-content: flex-end; padding: 8px 12px 12px; }
+
+@media (max-width: 760px) {
+  .navigaciya { display: none; }
+  .razdely { width: 120px; }
+  .poisk input { width: 120px; }
+  .okno-telo { flex-direction: column; }
+  .knopki-zapuska { width: auto; flex-direction: row; flex-wrap: wrap; }
+}
