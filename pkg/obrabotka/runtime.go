@@ -11,6 +11,7 @@ import (
 	"github.com/robfig/cron/v3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -103,19 +104,28 @@ func (r *Runner) call(ctx context.Context, method string, args ...*bsl.Ref) erro
 	return err
 }
 
-// Reconcile is controller-runtime's entry into ОбработкаПроведения.
-func (r *Runner) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+// kindReconciler is controller-runtime's entry into the handler of a kind.
+type kindReconciler struct {
+	r *Runner
+	h Handler
+}
+
+func (k *kindReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+	return k.r.reconcile(ctx, k.h, req)
+}
+
+func (r *Runner) reconcile(ctx context.Context, h Handler, req reconcile.Request) (reconcile.Result, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	u := &unstructured.Unstructured{}
-	u.SetGroupVersionKind(r.ob.Kind)
+	u.SetGroupVersionKind(h.Kind)
 	if err := r.cluster.c.Get(ctx, req.NamespacedName, u); err != nil {
 		if apierrors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
 	}
-	hasDelete := r.ob.Module.Method(HandlerDelete) != nil
+	hasDelete := h.Delete != ""
 
 	if !u.GetDeletionTimestamp().IsZero() {
 		if !hasDelete || !controllerutil.ContainsFinalizer(u, r.finalizer()) {
@@ -126,7 +136,7 @@ func (r *Runner) Reconcile(ctx context.Context, req reconcile.Request) (reconcil
 			return reconcile.Result{}, err
 		}
 		cancel := &bsl.Ref{V: false}
-		if err := r.call(ctx, HandlerDelete, &bsl.Ref{V: obj}, cancel); err != nil {
+		if err := r.call(ctx, h.Delete, &bsl.Ref{V: obj}, cancel); err != nil {
 			r.warn(u, "ОшибкаУдаления", err.Error())
 			return reconcile.Result{}, err
 		}
@@ -151,7 +161,7 @@ func (r *Runner) Reconcile(ctx context.Context, req reconcile.Request) (reconcil
 	}
 	before := statusJSON(obj)
 	cancel := &bsl.Ref{V: false}
-	if err := r.call(ctx, HandlerPost, &bsl.Ref{V: obj}, cancel); err != nil {
+	if err := r.call(ctx, h.Method, &bsl.Ref{V: obj}, cancel); err != nil {
 		r.warn(u, "ОшибкаПроведения", err.Error())
 		return reconcile.Result{}, err
 	}
@@ -218,24 +228,24 @@ func Setup(mgr manager.Manager, ob *Obrabotka) (*Runner, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !ob.Kind.Empty() {
+	for _, h := range ob.Handlers {
 		forObj := &unstructured.Unstructured{}
-		forObj.SetGroupVersionKind(ob.Kind)
+		forObj.SetGroupVersionKind(h.Kind)
 		b := ctrl.NewControllerManagedBy(mgr).
-			Named(perevod.Translit(ob.Name)).
+			Named(perevod.Translit(ob.Name) + "-" + strings.ToLower(h.Kind.Kind)).
 			For(forObj).
 			WithOptions(controller.Options{MaxConcurrentReconciles: 1})
-		for _, gvk := range ob.Owns {
+		for _, gvk := range h.Owns {
 			o := &unstructured.Unstructured{}
 			o.SetGroupVersionKind(gvk)
 			b = b.Owns(o)
 		}
-		for _, gvk := range ob.Watches {
+		for _, gvk := range h.Watches {
 			o := &unstructured.Unstructured{}
 			o.SetGroupVersionKind(gvk)
-			b = b.Watches(o, handler.EnqueueRequestsFromMapFunc(r.all), builder.WithPredicates())
+			b = b.Watches(o, handler.EnqueueRequestsFromMapFunc(r.all(h.Kind)), builder.WithPredicates())
 		}
-		if err := b.Complete(r); err != nil {
+		if err := b.Complete(&kindReconciler{r: r, h: h}); err != nil {
 			return nil, err
 		}
 	}
@@ -247,19 +257,21 @@ func Setup(mgr manager.Manager, ob *Obrabotka) (*Runner, error) {
 	return r, nil
 }
 
-// all enqueues every object of the kind: a watched kind changed, and the
+// all enqueues every object of a kind: a watched kind changed, and the
 // module decides what that means.
-func (r *Runner) all(ctx context.Context, _ client.Object) []reconcile.Request {
-	l := &unstructured.UnstructuredList{}
-	l.SetGroupVersionKind(r.ob.Kind.GroupVersion().WithKind(r.ob.Kind.Kind + "List"))
-	if err := r.cluster.c.List(ctx, l); err != nil {
-		return nil
+func (r *Runner) all(kind schema.GroupVersionKind) handler.MapFunc {
+	return func(ctx context.Context, _ client.Object) []reconcile.Request {
+		l := &unstructured.UnstructuredList{}
+		l.SetGroupVersionKind(kind.GroupVersion().WithKind(kind.Kind + "List"))
+		if err := r.cluster.c.List(ctx, l); err != nil {
+			return nil
+		}
+		out := make([]reconcile.Request, 0, len(l.Items))
+		for _, o := range l.Items {
+			out = append(out, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&o)})
+		}
+		return out
 	}
-	out := make([]reconcile.Request, 0, len(l.Items))
-	for _, o := range l.Items {
-		out = append(out, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&o)})
-	}
-	return out
 }
 
 // schedule runs the procedures marked &Расписание, on the leader only.

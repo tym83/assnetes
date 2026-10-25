@@ -21,8 +21,10 @@ func TestShippedObrabotki(t *testing.T) {
 			t.Errorf("%s: %v", dir, err)
 			continue
 		}
-		if _, err := ob.webhook(); err != nil {
-			t.Errorf("%s: %v", dir, err)
+		for _, m := range ob.Checks {
+			if _, err := ob.webhook(m); err != nil {
+				t.Errorf("%s: %v", dir, err)
+			}
 		}
 		for _, f := range ob.CRDs {
 			data, _ := os.ReadFile(f)

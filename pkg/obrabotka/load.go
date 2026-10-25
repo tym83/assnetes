@@ -33,16 +33,26 @@ const (
 	HandlerDefault  = "ПередЗаписью"
 )
 
-// Obrabotka is one operator: its module and what it watches.
+// Obrabotka is one operator: its module and what it handles.
 type Obrabotka struct {
 	Name     string
 	Dir      string
 	Module   *bsl.Module
-	Kind     schema.GroupVersionKind // the kind it reconciles; empty for schedule-only
-	Owns     []schema.GroupVersionKind
-	Watches  []schema.GroupVersionKind
+	Handlers []Handler // one per kind it reconciles
+	Checks   []string  // methods that check objects before the cluster takes them
 	Schedule []Scheduled
 	CRDs     []string // files of the description of its kinds, Метаданные*.yaml
+}
+
+// Handler is what a module does with one kind: the procedure marked
+// &Обработка(Вид = …) reconciles it, the one marked &ПередУдалением(Вид = …)
+// runs under a finalizer.
+type Handler struct {
+	Method  string
+	Delete  string
+	Kind    schema.GroupVersionKind
+	Owns    []schema.GroupVersionKind
+	Watches []schema.GroupVersionKind
 }
 
 // Scheduled is a procedure run on a schedule.
@@ -97,29 +107,38 @@ func Load(dir string) (*Obrabotka, error) {
 	return ob, ob.declare()
 }
 
-// declare reads what the module declares in its annotations.
+// declare reads what the module declares in its annotations. Handlers
+// may have any names; the names of the platform's events, without
+// annotations, still work for a module of one kind.
 func (ob *Obrabotka) declare() error {
-	if m := ob.Module.Method(HandlerPost); m != nil {
+	if m := ob.Module.Method(HandlerPost); m != nil && m.Annotation("Обработка") == nil {
+		return fmt.Errorf("%s: у %s нет аннотации &Обработка(Вид = \"…\")", ob.Name, HandlerPost)
+	}
+	byKind := map[schema.GroupVersionKind]int{}
+	for _, m := range ob.Module.Methods {
 		a := m.Annotation("Обработка")
 		if a == nil {
-			return fmt.Errorf("%s: у %s нет аннотации &Обработка(Вид = \"…\")", ob.Name, HandlerPost)
+			continue
 		}
 		if v, ok := a.Param("Имя", -1); ok {
 			ob.Name = bsl.ToString(v)
 		}
 		kindV, ok := a.Param("Вид", 0)
 		if !ok {
-			return fmt.Errorf("%s: в &Обработка не указан Вид", ob.Name)
+			return fmt.Errorf("%s: в &Обработка у %s не указан Вид", ob.Name, m.Name)
 		}
 		gvk, err := ResolveGVK(bsl.ToString(kindV))
 		if err != nil {
 			return fmt.Errorf("%s: %w", ob.Name, err)
 		}
-		ob.Kind = gvk
+		if _, dup := byKind[gvk]; dup {
+			return fmt.Errorf("%s: вид «%s» обрабатывают две процедуры", ob.Name, bsl.ToString(kindV))
+		}
+		h := Handler{Method: m.Name, Kind: gvk}
 		for _, p := range []struct {
 			name string
 			into *[]schema.GroupVersionKind
-		}{{"Владеет", &ob.Owns}, {"Наблюдает", &ob.Watches}} {
+		}{{"Владеет", &h.Owns}, {"Наблюдает", &h.Watches}} {
 			v, ok := a.Param(p.name, -1)
 			if !ok {
 				continue
@@ -135,9 +154,37 @@ func (ob *Obrabotka) declare() error {
 				*p.into = append(*p.into, g)
 			}
 		}
+		byKind[gvk] = len(ob.Handlers)
+		ob.Handlers = append(ob.Handlers, h)
 	}
 	for _, m := range ob.Module.Methods {
-		a := m.Annotation("Расписание")
+		a := m.Annotation("ПередУдалением")
+		switch {
+		case a != nil:
+			kindV, ok := a.Param("Вид", 0)
+			if !ok {
+				return fmt.Errorf("%s: в &ПередУдалением у %s не указан Вид", ob.Name, m.Name)
+			}
+			gvk, err := ResolveGVK(bsl.ToString(kindV))
+			if err != nil {
+				return err
+			}
+			i, ok := byKind[gvk]
+			if !ok {
+				return fmt.Errorf("%s: &ПередУдалением для вида «%s», который обработка не ведёт", ob.Name, bsl.ToString(kindV))
+			}
+			ob.Handlers[i].Delete = m.Name
+		case norm(m.Name) == norm(HandlerDelete):
+			for i := range ob.Handlers {
+				if norm(ob.Handlers[i].Method) == norm(HandlerPost) {
+					ob.Handlers[i].Delete = m.Name
+				}
+			}
+		}
+		if m.Annotation("ПроверкаЗаполнения") != nil || norm(m.Name) == norm(HandlerValidate) {
+			ob.Checks = append(ob.Checks, m.Name)
+		}
+		a = m.Annotation("Расписание")
 		if a == nil {
 			continue
 		}
@@ -150,11 +197,13 @@ func (ob *Obrabotka) declare() error {
 		}
 		ob.Schedule = append(ob.Schedule, Scheduled{Method: m.Name, Cron: bsl.ToString(v)})
 	}
-	if ob.Kind.Empty() && len(ob.Schedule) == 0 && ob.Module.Method(HandlerValidate) == nil {
-		return fmt.Errorf("%s: обработка ничего не обрабатывает: нет ни %s, ни %s, ни &Расписание", ob.Name, HandlerPost, HandlerValidate)
+	if len(ob.Handlers) == 0 && len(ob.Schedule) == 0 && len(ob.Checks) == 0 {
+		return fmt.Errorf("%s: обработка ничего не обрабатывает: нет ни &Обработка, ни проверок заполнения, ни &Расписание", ob.Name)
 	}
 	return nil
 }
+
+func norm(s string) string { return strings.ToLower(s) }
 
 // ResolveGVK finds a kind by its Russian or English name, or takes
 // «группа/версия/Вид» as it is.

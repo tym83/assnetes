@@ -58,8 +58,8 @@ type webhookRule struct {
 	exempt []string
 }
 
-func (ob *Obrabotka) webhook() (*webhookRule, error) {
-	m := ob.Module.Method(HandlerValidate)
+func (ob *Obrabotka) webhook(method string) (*webhookRule, error) {
+	m := ob.Module.Method(method)
 	if m == nil {
 		return nil, nil
 	}
@@ -87,8 +87,8 @@ func (ob *Obrabotka) webhook() (*webhookRule, error) {
 			}
 		}
 	}
-	if kinds == "" && !ob.Kind.Empty() {
-		rule.kinds = []schema.GroupVersionKind{ob.Kind}
+	if kinds == "" && len(ob.Handlers) == 1 {
+		rule.kinds = []schema.GroupVersionKind{ob.Handlers[0].Kind}
 	}
 	for _, k := range strings.Split(kinds, ",") {
 		if k = strings.TrimSpace(k); k == "" {
@@ -109,17 +109,30 @@ func (ob *Obrabotka) webhook() (*webhookRule, error) {
 	return rule, nil
 }
 
-func (r *Runner) path() string { return "/proverka/" + perevod.Translit(r.ob.Name) }
+// check is one method of a module that checks objects.
+type check struct {
+	r      *Runner
+	method string
+	rule   *webhookRule
+}
 
-// admit answers one AdmissionReview by ОбработкаПроверкиЗаполнения.
-func (r *Runner) admit(w http.ResponseWriter, req *http.Request) {
+func (c *check) path() string {
+	return "/proverka/" + perevod.Translit(c.r.ob.Name) + "/" + perevod.Translit(c.method)
+}
+
+func (c *check) name() string {
+	return perevod.Translit(c.r.ob.Name) + "-" + perevod.Translit(c.method) + ".obrabotchik." + perevod.Group
+}
+
+// admit answers one AdmissionReview by the check.
+func (c *check) admit(w http.ResponseWriter, req *http.Request) {
 	var review admissionv1.AdmissionReview
 	if err := json.NewDecoder(http.MaxBytesReader(w, req.Body, 8<<20)).Decode(&review); err != nil || review.Request == nil {
 		http.Error(w, "неверный AdmissionReview", http.StatusBadRequest)
 		return
 	}
 	resp := &admissionv1.AdmissionResponse{UID: review.Request.UID, Allowed: true}
-	if msg, deny := r.validate(req.Context(), review.Request); deny {
+	if msg, deny := c.r.validate(req.Context(), c.method, review.Request); deny {
 		resp.Allowed = false
 		resp.Result = &metav1.Status{Message: msg, Reason: "ОтказВПроведении", Code: http.StatusForbidden}
 	}
@@ -129,7 +142,7 @@ func (r *Runner) admit(w http.ResponseWriter, req *http.Request) {
 	_ = json.NewEncoder(w).Encode(&review)
 }
 
-func (r *Runner) validate(ctx context.Context, ar *admissionv1.AdmissionRequest) (string, bool) {
+func (r *Runner) validate(ctx context.Context, method string, ar *admissionv1.AdmissionRequest) (string, bool) {
 	raw := ar.Object.Raw
 	if ar.Operation == admissionv1.Delete {
 		raw = ar.OldObject.Raw
@@ -165,9 +178,9 @@ func (r *Runner) validate(ctx context.Context, ar *admissionv1.AdmissionRequest)
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 	cancelRef := &bsl.Ref{V: false}
-	m := r.ob.Module.Method(HandlerValidate)
+	m := r.ob.Module.Method(method)
 	args := []*bsl.Ref{{V: obj}, cancelRef, {V: info}}[:min(3, len(m.Params))]
-	if err := r.call(ctx, HandlerValidate, args...); err != nil {
+	if err := r.call(ctx, method, args...); err != nil {
 		// a broken check must not lock the cluster: allow, and say so
 		r.log.Error(err, "проверка заполнения упала, документ пропущен")
 		return "", false
@@ -181,10 +194,9 @@ func (r *Runner) validate(ctx context.Context, ar *admissionv1.AdmissionRequest)
 // webhookServer serves the checks of all обработки of one обработчик and
 // registers them with the API server under a certificate of its own.
 type webhookServer struct {
-	opts    WebhookOptions
-	c       client.Client
-	runners []*Runner
-	rules   []*webhookRule
+	opts   WebhookOptions
+	c      client.Client
+	checks []*check
 }
 
 func (s *webhookServer) NeedLeaderElection() bool { return false }
@@ -196,8 +208,8 @@ func (s *webhookServer) Start(ctx context.Context) error {
 		return err
 	}
 	mux := http.NewServeMux()
-	for _, r := range s.runners {
-		mux.HandleFunc(r.path(), r.admit)
+	for _, c := range s.checks {
+		mux.HandleFunc(c.path(), c.admit)
 	}
 	srv := &http.Server{
 		Addr: s.opts.Addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second,
@@ -228,9 +240,9 @@ func (s *webhookServer) register(ctx context.Context, caPEM []byte) error {
 		TypeMeta:   metav1.TypeMeta{APIVersion: "admissionregistration.k8s.io/v1", Kind: "ValidatingWebhookConfiguration"},
 		ObjectMeta: metav1.ObjectMeta{Name: "obrabotchik-" + s.opts.Namespace + "-" + s.opts.Service},
 	}
-	for i, r := range s.runners {
-		rule := s.rules[i]
-		path := r.path()
+	for _, c := range s.checks {
+		r, rule := c.r, c.rule
+		path := c.path()
 		var rules []admissionregistrationv1.RuleWithOperations
 		for _, k := range rule.kinds {
 			m, err := r.cluster.mapper.RESTMapping(k.GroupKind(), k.Version)
@@ -247,7 +259,7 @@ func (s *webhookServer) register(ctx context.Context, caPEM []byte) error {
 			})
 		}
 		cfg.Webhooks = append(cfg.Webhooks, admissionregistrationv1.ValidatingWebhook{
-			Name: perevod.Translit(r.ob.Name) + ".obrabotchik." + perevod.Group,
+			Name: c.name(),
 			ClientConfig: admissionregistrationv1.WebhookClientConfig{
 				Service:  &admissionregistrationv1.ServiceReference{Name: s.opts.Service, Namespace: s.opts.Namespace, Path: &path},
 				CABundle: caPEM,
@@ -328,17 +340,15 @@ func selfSigned(host string) ([]byte, tls.Certificate, error) {
 func SetupWebhooks(mgr manager.Manager, runners []*Runner, opts WebhookOptions) error {
 	s := &webhookServer{opts: opts, c: mgr.GetClient()}
 	for _, r := range runners {
-		rule, err := r.ob.webhook()
-		if err != nil {
-			return err
+		for _, method := range r.ob.Checks {
+			rule, err := r.ob.webhook(method)
+			if err != nil {
+				return err
+			}
+			s.checks = append(s.checks, &check{r: r, method: method, rule: rule})
 		}
-		if rule == nil {
-			continue
-		}
-		s.runners = append(s.runners, r)
-		s.rules = append(s.rules, rule)
 	}
-	if len(s.runners) == 0 {
+	if len(s.checks) == 0 {
 		return nil
 	}
 	if opts.Service == "" || opts.Namespace == "" {

@@ -66,7 +66,11 @@ func main() {
 			os.Exit(1)
 		}
 		runners = append(runners, r)
-		log.Info("обработка подключена", "обработка", ob.Name, "вид", ob.Kind.String(), "регламентных", len(ob.Schedule))
+		kinds := make([]string, 0, len(ob.Handlers))
+		for _, h := range ob.Handlers {
+			kinds = append(kinds, h.Kind.Kind)
+		}
+		log.Info("обработка подключена", "обработка", ob.Name, "виды", kinds, "проверок", len(ob.Checks), "регламентных", len(ob.Schedule))
 	}
 	if !webhooks {
 		log.Info("проверки заполнения выключены")
