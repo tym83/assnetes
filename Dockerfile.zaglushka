@@ -1,0 +1,23 @@
+# The stand-in of the 1C:Enterprise server, laid out where the platform
+# installs: /opt/1cv8/x86_64/<version>/. No software of 1C Company inside.
+ARG BUILDER=golang:1.26
+FROM --platform=$BUILDPLATFORM ${BUILDER} AS build
+ARG TARGETOS
+ARG TARGETARCH
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w" -o /out/1c-zaglushka ./cmd/1c-zaglushka
+
+FROM alpine:3.22
+ARG V=8.3.27.9999
+COPY --from=build /out/1c-zaglushka /usr/local/bin/1c-zaglushka
+RUN mkdir -p /opt/1cv8/x86_64/${V} /home/usr1cv8/.1cv8/1C/1cv8 \
+ && for b in ragent ras rac ibcmd webinst; do ln -s /usr/local/bin/1c-zaglushka /opt/1cv8/x86_64/${V}/$b; done \
+ && ln -s /opt/1cv8/x86_64/${V} /opt/1cv8/current \
+ && addgroup -g 999 grp1cv8 && adduser -D -u 999 -G grp1cv8 -h /home/usr1cv8 usr1cv8 \
+ && chown -R 999:999 /home/usr1cv8
+ENV PATH=/opt/1cv8/current:$PATH
+USER 999:999
+ENTRYPOINT ["/usr/local/bin/1c-zaglushka"]
