@@ -20,7 +20,12 @@ var (
 		"True": "да", "False": "нет", "Unknown": "неизвестно",
 		"ReconciliationSucceeded": "✓ проведён", "Progressing": "○ проводится",
 		"VersionNotAvailable": "✗ нет в прайсе", "ReconciliationFailed": "✗ не проведён",
-		"DependencyNotReady": "○ ждёт поставки", "Deleting": "✗ списывается",
+		"RequirementsNotMet": "○ ждёт поставки", "ConflictingRequirements": "✗ требования не сходятся",
+		"VersionMismatch": "✗ не та версия", "VariantNotFound": "✗ нет такой комплектации",
+		"PackageSourceNotFound": "✗ нет поставщика", "InvalidConfiguration": "✗ ошибка в заявке",
+		"CRDOwnershipConflict": "✗ расширение конфигурации чужое", "Conflict": "✗ конфликт",
+		"UpgradeFailed": "✗ обновление не прошло", "UpgradeRolledBack": "↩ обновление сторнировано",
+		"RolledBack": "↩ сторнировано", "Deleting": "✗ списывается",
 	}
 )
 
