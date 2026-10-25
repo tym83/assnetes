@@ -196,3 +196,37 @@ func (l *List) CallMethod(_ *bsl.Interp, name string, args []*bsl.Ref) (bsl.Valu
 	}
 	return nil, fmt.Errorf("Метод объекта не обнаружен (%s)", name)
 }
+
+// FromValue turns a value of Соответствия and Массивы into objects that grow
+// as they are written, the way handlers of operators get them.
+func FromValue(v bsl.Value) bsl.Value {
+	switch x := v.(type) {
+	case *bsl.Map:
+		o := NewObject("ОбъектКластера")
+		for _, k := range x.Keys() {
+			val, _ := x.Lookup(k)
+			o.put(bsl.ToString(k), FromValue(val))
+		}
+		return o
+	case *bsl.Structure:
+		o := NewObject("ОбъектКластера")
+		for _, k := range x.Keys() {
+			val, _ := x.Get(k)
+			o.put(k, FromValue(val))
+		}
+		return o
+	case *bsl.Array:
+		l := &List{}
+		for _, e := range x.Elems {
+			l.elems = append(l.elems, FromValue(e))
+		}
+		return l
+	}
+	return v
+}
+
+// WithType names the type of an object, so ТипЗнч() tells kinds apart.
+func (o *Object) WithType(name string) *Object {
+	o.typeName = name
+	return o
+}

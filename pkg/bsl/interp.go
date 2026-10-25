@@ -854,3 +854,6 @@ func (f *frame) newObject(e *NewExpr) (Value, error) {
 	v, err := c(f.s.it, argv)
 	return v, f.wrap(err, e.Line)
 }
+
+// Context returns the context execution runs under.
+func (it *Interp) Context() context.Context { return it.ctx }
