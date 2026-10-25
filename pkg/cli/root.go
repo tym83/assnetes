@@ -73,6 +73,7 @@ func NewRootCommand() *cobra.Command {
 		newKindsCommand(o),
 		newRunCommand(o),
 		newVvodCommand(o),
+		newKonfiguratorCommand(o),
 		&cobra.Command{
 			Use:     "версия",
 			Aliases: []string{"version"},

@@ -48,6 +48,7 @@ spec:
             - --service=obrabotchik
             - --id=obrabotchik
             - --namespace=assnetes-system
+            - --vidy=false
             - /obrabotki/proizvodstvennyj-kalendar
             - /obrabotki/kursy-valyut
             - /obrabotki/data-zapreta

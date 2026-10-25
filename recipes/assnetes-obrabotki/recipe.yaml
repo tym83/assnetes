@@ -14,8 +14,13 @@ spec:
   charts:
     obrabotchik:
       from: [manifests]
+      crdsDir: true
   package:
     provides: [assnetes-obrabotki]
+    crds:
+      - productioncalendars.xn--80ajopdiccfkc.xn--90a0bg
+      - currencyrates.xn--80ajopdiccfkc.xn--90a0bg
+      - reconciliationacts.xn--80ajopdiccfkc.xn--90a0bg
     rollback:
       safe: true
     variants:
@@ -23,4 +28,4 @@ spec:
         components:
           - name: obrabotchik
             path: obrabotchik
-            install: {namespace: assnetes-system}
+            install: {namespace: assnetes-system, upgradeCRDs: CreateReplace}

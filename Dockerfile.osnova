@@ -1,0 +1,21 @@
+# The base for 1C:Enterprise: Debian with the libraries, locale and fonts the
+# platform needs, Apache for web publications, the usr1cv8 user. No
+# software of 1C Company inside: the operator installs the platform from
+# the archive a Поставка names, when a server starts.
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates wget locales fontconfig fonts-liberation fonts-dejavu-core \
+      libfreetype6 libglib2.0-0 libgsf-1-114 libkrb5-3 libgssapi-krb5-2 liblcms2-2 \
+      libmagickwand-6.q16-6 libodbc1 libcurl4 libxml2 libssl3 imagemagick \
+      apache2 procps \
+ && sed -i 's/^# *ru_RU.UTF-8/ru_RU.UTF-8/' /etc/locale.gen && locale-gen \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd -g 999 grp1cv8 && useradd -u 999 -g grp1cv8 -m -d /home/usr1cv8 usr1cv8 \
+ && mkdir -p /opt/1cv8 /home/usr1cv8/.1cv8/1C/1cv8 /var/www \
+ && chown -R 999:999 /opt/1cv8 /home/usr1cv8 /var/www \
+ && sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf \
+ && chown -R 999:999 /var/run/apache2 /var/log/apache2 /var/lock/apache2 /etc/apache2 \
+ && printf 'кофта на стуле\n' > /var/www/healthz \
+ && printf 'Alias /healthz /var/www/healthz\n<Location /healthz>\n  Require all granted\n</Location>\n' > /etc/apache2/conf-enabled/healthz.conf
+ENV LANG=ru_RU.UTF-8 LC_ALL=ru_RU.UTF-8
+USER 999:999

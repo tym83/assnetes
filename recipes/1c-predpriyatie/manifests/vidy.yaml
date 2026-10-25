@@ -1,0 +1,661 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: Поставка
+  name: platforms.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: Platform
+    listKind: PlatformList
+    plural: platforms
+    singular: platform
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.Версия
+          name: Версия
+          type: string
+        - jsonPath: .spec.Заглушка
+          name: Заглушка
+          type: boolean
+        - jsonPath: .status.Готова
+          name: Готова
+          type: boolean
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Версия платформы 1С:Предприятие и откуда её брать. Дистрибутивы фирмы «1С» не распространяются — архив приносите свой.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                Архив:
+                  description: Адрес архива server64_<версия>.tar.gz для Linux (с developer.1c.ru или releases.1c.ru, выложенный у вас)
+                  type: string
+                Версия:
+                  description: Например 8.3.27.1606
+                  pattern: ^8\.[35]\.[0-9]+\.[0-9]+$
+                  type: string
+                Заглушка:
+                  default: false
+                  description: Вместо платформы — заглушка Assnetes, для проверки без 1С
+                  type: boolean
+                Образ:
+                  description: 'Образ сервера: основа с библиотеками для 1С или заглушка'
+                  type: string
+                ОбразСУБД:
+                  description: Образ PostgreSQL для 1С для CloudNativePG
+                  type: string
+              required:
+                - Версия
+              type: object
+            status:
+              properties:
+                Готова:
+                  type: boolean
+                Путь:
+                  type: string
+                Сообщение:
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: КластерСерверов
+  name: serverclusters.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: ServerCluster
+    listKind: ServerClusterList
+    plural: serverclusters
+    singular: servercluster
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.Фаза
+          name: Фаза
+          type: string
+        - jsonPath: .status.Серверов
+          name: Серверов
+          type: string
+        - jsonPath: .status.Сеансов
+          name: Сеансов
+          type: integer
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Кластер серверов 1С:Предприятия — центральный сервер, рабочие серверы, лицензирование и СУБД.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                КлассХранения:
+                  type: string
+                Лицензии:
+                  properties:
+                    Режим:
+                      default: community
+                      enum:
+                        - community
+                        - software
+                        - hasp
+                      type: string
+                    Сеансов:
+                      description: Сколько клиентских лицензий; для лицензии разработчика — 3
+                      type: integer
+                    Серверов:
+                      description: Сколько серверных лицензий; каждый сервер кластера — отдельный компьютер
+                      type: integer
+                  type: object
+                Масштабирование:
+                  properties:
+                    Включено:
+                      default: false
+                      type: boolean
+                    Максимум:
+                      default: 4
+                      minimum: 1
+                      type: integer
+                    СеансовНаСервер:
+                      default: 20
+                      minimum: 1
+                      type: integer
+                  type: object
+                Поставка:
+                  type: string
+                РабочиеСерверы:
+                  properties:
+                    ДоляБезопаснойПамяти:
+                      default: 70
+                      description: Процент памяти пода — безопасный расход памяти рабочих процессов
+                      maximum: 95
+                      minimum: 10
+                      type: integer
+                    ИнформационныхБазНаПроцесс:
+                      default: 8
+                      type: integer
+                    Количество:
+                      default: 1
+                      description: Рабочих серверов кроме центрального
+                      minimum: 0
+                      type: integer
+                    Память:
+                      default: 4Gi
+                      type: string
+                    Процессор:
+                      default: "1"
+                      type: string
+                    СоединенийНаПроцесс:
+                      default: 256
+                      type: integer
+                  type: object
+                СУБД:
+                  properties:
+                    Объём:
+                      default: 10Gi
+                      type: string
+                    Память:
+                      default: 2Gi
+                      type: string
+                    Процессор:
+                      default: 500m
+                      type: string
+                    Экземпляров:
+                      default: 1
+                      minimum: 1
+                      type: integer
+                  type: object
+                Центральный:
+                  properties:
+                    Память:
+                      default: 2Gi
+                      type: string
+                    Процессор:
+                      default: 500m
+                      type: string
+                  type: object
+              required:
+                - Поставка
+              type: object
+            status:
+              properties:
+                Кластер:
+                  type: string
+                РабочихЖелаемо:
+                  type: integer
+                Сеансов:
+                  type: integer
+                Серверов:
+                  type: string
+                Серверы:
+                  items:
+                    properties:
+                      Имя:
+                        type: string
+                      ПамятьКБ:
+                        type: integer
+                      Роль:
+                        type: string
+                      Сеансов:
+                        type: integer
+                      Хост:
+                        type: string
+                    type: object
+                  type: array
+                Сообщение:
+                  type: string
+                Фаза:
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: ИнформационнаяБаза
+  name: infobases.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: Infobase
+    listKind: InfobaseList
+    plural: infobases
+    shortNames:
+      - ib
+    singular: infobase
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.КластерСерверов
+          name: Кластер
+          type: string
+        - jsonPath: .status.Фаза
+          name: Фаза
+          type: string
+        - jsonPath: .status.Конфигурация
+          name: Конфигурация
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Информационная база на кластере серверов — база данных в СУБД и её регистрация в кластере.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                КластерСерверов:
+                  type: string
+                Редакция:
+                  default: ПРОФ
+                  enum:
+                    - Базовая
+                    - ПРОФ
+                    - КОРП
+                  type: string
+                УдалятьБазуДанных:
+                  default: false
+                  description: При удалении объекта удалить и базу в СУБД
+                  type: boolean
+                Шаблон:
+                  description: 'Откуда взять конфигурацию: файл .cf или выгрузка .dt'
+                  properties:
+                    URL:
+                      description: Или адрес файла
+                      type: string
+                    Ключ:
+                      description: Имя файла в справочнике
+                      type: string
+                    Справочник:
+                      description: Справочник с файлом
+                      type: string
+                    ШаблонКонфигурации:
+                      description: Шаблон конфигурации из прайс-листа
+                      type: string
+                  type: object
+              required:
+                - КластерСерверов
+              type: object
+            status:
+              properties:
+                Зарегистрирована:
+                  type: boolean
+                Конфигурация:
+                  type: string
+                Сообщение:
+                  type: string
+                Фаза:
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: Публикация
+  name: publications.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: Publication
+    listKind: PublicationList
+    plural: publications
+    singular: publication
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.ИнформационнаяБаза
+          name: База
+          type: string
+        - jsonPath: .status.Адрес
+          name: Адрес
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Веб-публикация информационной базы — веб-клиент, HTTP-сервисы и OData.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                Адрес:
+                  description: Путь публикации, например /buh
+                  type: string
+                Домен:
+                  type: string
+                ИнформационнаяБаза:
+                  type: string
+                КлассПроходной:
+                  default: nginx
+                  type: string
+                Реплики:
+                  default: 1
+                  minimum: 1
+                  type: integer
+              required:
+                - ИнформационнаяБаза
+              type: object
+            status:
+              properties:
+                Адрес:
+                  type: string
+                Сообщение:
+                  type: string
+                Фаза:
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: ОбновлениеКонфигурации
+  name: configurationupdates.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: ConfigurationUpdate
+    listKind: ConfigurationUpdateList
+    plural: configurationupdates
+    singular: configurationupdate
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.ИнформационнаяБаза
+          name: База
+          type: string
+        - jsonPath: .status.Фаза
+          name: Фаза
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Обновление конфигурации информационной базы — с блокировкой сеансов, выгрузкой перед обновлением и окном работ.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                ИнформационнаяБаза:
+                  type: string
+                ОкноРабот:
+                  description: Часы по местному времени, например 22-6; пусто — сразу
+                  type: string
+                ПредупредитьЗаМинут:
+                  default: 0
+                  description: Сколько минут ждать после сообщения «Выйдите из базы!»
+                  type: integer
+                Расширение:
+                  description: Имя расширения, если файл — расширение .cfe
+                  type: string
+                Файл:
+                  properties:
+                    URL:
+                      type: string
+                    Ключ:
+                      type: string
+                    Справочник:
+                      type: string
+                    ШаблонКонфигурации:
+                      type: string
+                  type: object
+                ЧасовойПояс:
+                  default: Europe/Moscow
+                  type: string
+              required:
+                - ИнформационнаяБаза
+              type: object
+            status:
+              properties:
+                Выгрузка:
+                  type: string
+                Завершено:
+                  type: string
+                Начато:
+                  type: string
+                Сообщение:
+                  type: string
+                Фаза:
+                  enum:
+                    - ОжидаетОкна
+                    - Блокировка
+                    - ЗавершениеСеансов
+                    - Выгрузка
+                    - Обновление
+                    - Выполнено
+                    - Ошибка
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: Выгрузка
+  name: infobasebackups.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: InfobaseBackup
+    listKind: InfobaseBackupList
+    plural: infobasebackups
+    singular: infobasebackup
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.ИнформационнаяБаза
+          name: База
+          type: string
+        - jsonPath: .status.Фаза
+          name: Фаза
+          type: string
+        - jsonPath: .status.Файл
+          name: Файл
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Выгрузка информационной базы в файл .dt — разово или по расписанию.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                ИнформационнаяБаза:
+                  type: string
+                Расписание:
+                  description: cron; пусто — один раз
+                  type: string
+              required:
+                - ИнформационнаяБаза
+              type: object
+            status:
+              properties:
+                Сообщение:
+                  type: string
+                Фаза:
+                  type: string
+                Файл:
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: ШаблонКонфигурации
+  name: configurationtemplates.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: ConfigurationTemplate
+    listKind: ConfigurationTemplateList
+    plural: configurationtemplates
+    singular: configurationtemplate
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.Конфигурация
+          name: Конфигурация
+          type: string
+        - jsonPath: .spec.Версия
+          name: Версия
+          type: string
+        - jsonPath: .spec.ВидФайла
+          name: Файл
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Шаблон конфигурации или её обновления — .cf, .cfu, .cfe или .dt. Пакеты прайс-листа поставляют шаблоны для заглушки; настоящие файлы приносите свои, по адресу.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                URL:
+                  description: Адрес файла
+                  type: string
+                Версия:
+                  type: string
+                ВидФайла:
+                  default: cf
+                  enum:
+                    - cf
+                    - cfu
+                    - cfe
+                    - dt
+                  type: string
+                Конфигурация:
+                  description: Имя конфигурации, например БухгалтерияПредприятия
+                  type: string
+                МинимальнаяПлатформа:
+                  description: Не ниже какой версии платформы
+                  type: string
+                Поставщик:
+                  type: string
+                Синоним:
+                  type: string
+                Содержимое:
+                  description: 'Сам файл, если он текстовый и небольшой: шаблоны заглушки'
+                  type: string
+              required:
+                - Версия
+                - Конфигурация
+              type: object
+            status:
+              properties: {}
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}

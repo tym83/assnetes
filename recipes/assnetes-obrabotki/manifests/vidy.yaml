@@ -1,0 +1,328 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: ПроизводственныйКалендарь
+  name: productioncalendars.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: ProductionCalendar
+    listKind: ProductionCalendarList
+    plural: productioncalendars
+    singular: productioncalendar
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.Год
+          name: Год
+          type: integer
+        - jsonPath: .status.РабочихДней
+          name: Рабочих дней
+          type: integer
+        - jsonPath: .status.СегодняРабочий
+          name: Сегодня рабочий
+          type: boolean
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Производственный календарь страны на год и правила, когда выкатывать нельзя.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                Год:
+                  minimum: 2013
+                  type: integer
+                ЗапретВыкатки:
+                  properties:
+                    ВВыходные:
+                      default: true
+                      type: boolean
+                    ВПраздники:
+                      default: true
+                      type: boolean
+                    ВПятницуПослеЧаса:
+                      default: 24
+                      description: 24 — не запрещать
+                      maximum: 24
+                      minimum: 0
+                      type: integer
+                    ВСокращённыйДеньПослеЧаса:
+                      default: 15
+                      maximum: 24
+                      minimum: 0
+                      type: integer
+                  type: object
+                Источник:
+                  default: https://xmlcalendar.ru/data
+                  type: string
+                Страна:
+                  default: ru
+                  description: Код страны календаря
+                  enum:
+                    - ru
+                    - by
+                    - kz
+                    - uz
+                  type: string
+                ЧасовойПояс:
+                  default: Europe/Moscow
+                  type: string
+              required:
+                - Год
+              type: object
+            status:
+              properties:
+                Дни:
+                  items:
+                    properties:
+                      Дата:
+                        type: string
+                      Праздник:
+                        type: string
+                      Тип:
+                        enum:
+                          - Выходной
+                          - Сокращённый
+                          - Рабочий
+                        type: string
+                    type: object
+                  type: array
+                Загружен:
+                  format: date-time
+                  type: string
+                Праздники:
+                  items:
+                    type: string
+                  type: array
+                РабочихДней:
+                  type: integer
+                СегодняРабочий:
+                  type: boolean
+                Сообщение:
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: КурсыВалют
+  name: currencyrates.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: CurrencyRates
+    listKind: CurrencyRatesList
+    plural: currencyrates
+    singular: currencyrates
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.НаДату
+          name: На дату
+          type: string
+        - jsonPath: .status.ИтогоРублейВМесяц
+          name: Итого руб/мес
+          type: number
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Курсы валют ЦБ РФ и во что обходятся подразделения кластера по запросам ресурсов.
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                Валюты:
+                  description: Коды валют, например USD, EUR, CNY, KZT
+                  items:
+                    type: string
+                  type: array
+                Источник:
+                  default: https://www.cbr.ru
+                  type: string
+                ЦенаГигабайтаВЧас:
+                  default: 0.3
+                  description: Рублей за гибибайт запрошенной памяти в час
+                  minimum: 0
+                  type: number
+                ЦенаЯдраВЧас:
+                  default: 1.2
+                  description: Рублей за одно запрошенное ядро в час
+                  minimum: 0
+                  type: number
+              type: object
+            status:
+              properties:
+                ИтогоРублейВМесяц:
+                  type: number
+                Курсы:
+                  items:
+                    properties:
+                      Валюта:
+                        type: string
+                      Курс:
+                        type: number
+                      Название:
+                        type: string
+                    type: object
+                  type: array
+                НаДату:
+                  type: string
+                Расходы:
+                  items:
+                    properties:
+                      ВВалютах:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      ГигабайтПамяти:
+                        type: number
+                      Подразделение:
+                        type: string
+                      РублейВМесяц:
+                        type: number
+                      Ядер:
+                        type: number
+                    type: object
+                  type: array
+                Сообщение:
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: АктСверки
+  name: reconciliationacts.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: ReconciliationAct
+    listKind: ReconciliationActList
+    plural: reconciliationacts
+    singular: reconciliationact
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.Сошлось
+          name: Сошлось
+          type: boolean
+        - jsonPath: .status.Сверено
+          name: Сверено
+          type: integer
+        - jsonPath: .status.Расхождений
+          name: Расхождений
+          type: integer
+        - jsonPath: .status.ДатаСверки
+          name: Дата сверки
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: Сверка объектов кластера с манифестами в Git — «данными контрагента».
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                Источник:
+                  description: 'Откуда брать манифесты: адрес, от которого отсчитываются Файлы (https://raw.githubusercontent.com/организация/репозиторий/main), или «справочник:Подразделение/Имя» — манифесты в Справочнике кластера.'
+                  type: string
+                Параметры:
+                  additionalProperties:
+                    type: string
+                  description: Параметры манифестов
+                  type: object
+                ПериодичностьМинут:
+                  default: 10
+                  minimum: 1
+                  type: integer
+                Подразделение:
+                  description: Куда манифесты проводятся, если не сказано иначе
+                  type: string
+                Файлы:
+                  items:
+                    type: string
+                  type: array
+              required:
+                - Источник
+                - Файлы
+              type: object
+            status:
+              properties:
+                Акт:
+                  type: string
+                ДатаСверки:
+                  type: string
+                Расхождений:
+                  type: integer
+                Расхождения:
+                  items:
+                    properties:
+                      ДанныеКонтрагента:
+                        type: string
+                      Документ:
+                        type: string
+                      НашиДанные:
+                        type: string
+                      Поле:
+                        type: string
+                    type: object
+                  type: array
+                Сверено:
+                  type: integer
+                Сообщение:
+                  type: string
+                Сошлось:
+                  type: boolean
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}

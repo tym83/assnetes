@@ -14,3 +14,7 @@ spec:
         requires:
           - {package: assnetes-obrabotki, version: "~0.1"}
           - {package: 1c-bitrix, version: "~0.1"}
+          - {package: 1c-predpriyatie, version: "~0.1"}
+          - {package: 1c-buhgalteriya, version: "~0.1"}
+          - {package: 1c-upravlenie-torgovlej, version: "~0.1"}
+          - {package: 1c-crm, version: "~0.1"}

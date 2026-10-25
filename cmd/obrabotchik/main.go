@@ -17,12 +17,13 @@ import (
 )
 
 func main() {
-	var leader, webhooks bool
+	var leader, webhooks, kinds bool
 	var metrics, probes, id, whAddr, whService, whNamespace string
 	flag.BoolVar(&leader, "monopolnyj-rezhim", true, "монопольный режим: работает один экземпляр, остальные ждут (leader election)")
 	flag.StringVar(&metrics, "metrics", ":8080", "адрес метрик")
 	flag.StringVar(&probes, "probes", ":8081", "адрес проб живости и готовности")
 	flag.StringVar(&id, "id", "obrabotchik", "имя блокировки монопольного режима")
+	flag.BoolVar(&kinds, "vidy", true, "ставить виды обработок из их Метаданные*.yaml (выключите, если их ставит пакет)")
 	flag.BoolVar(&obrabotka.RunScheduleAtStart, "srazu", false, "выполнить регламентные задания сразу при старте")
 	flag.BoolVar(&webhooks, "proverki", true, "проверки заполнения (admission webhooks)")
 	flag.StringVar(&whAddr, "webhook-addr", ":9443", "адрес проверок заполнения")
@@ -55,6 +56,9 @@ func main() {
 		if err != nil {
 			log.Error(err, "обработка не загружена", "каталог", dir)
 			os.Exit(1)
+		}
+		if !kinds {
+			ob.CRDs = nil
 		}
 		if err := obrabotka.InstallKinds(ctx, mgr.GetConfig(), ob); err != nil {
 			log.Error(err, "виды обработки не установлены", "обработка", ob.Name)
