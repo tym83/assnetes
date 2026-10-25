@@ -16,6 +16,18 @@ import (
 // source of a manifest.
 func (o *options) printObjects(objs []*bsl.Map, format string) error {
 	for i, obj := range objs {
+		if format == "api" {
+			// what the API server stores, for tools that do not speak Russian
+			if i > 0 {
+				fmt.Fprintln(o.out, "---")
+			}
+			y, err := toYAML(obj)
+			if err != nil {
+				return err
+			}
+			fmt.Fprint(o.out, y)
+			continue
+		}
 		ru, err := perevod.FromAPI(obj)
 		if err != nil {
 			return err

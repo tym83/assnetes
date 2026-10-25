@@ -57,7 +57,11 @@ func newApplyCommand(o *options) *cobra.Command {
 				objs = append(objs, got...)
 			}
 			if dryRun {
-				return o.printObjects(objs, "yaml")
+				format := o.output
+				if format == "" || format == "таблица" {
+					format = "yaml"
+				}
+				return o.printObjects(objs, format)
 			}
 			return o.apply(cmd.Context(), objs)
 		},
