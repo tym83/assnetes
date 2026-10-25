@@ -74,7 +74,7 @@ Five operators come with the distribution, in [obrabotki](obrabotki):
 
 | Operator | What it does |
 |---|---|
-| [Производственный календарь](obrabotki/proizvodstvennyj-kalendar) | loads the official calendar of working days and refuses rollouts on holidays, weekends and the afternoon before a holiday, unless a «служебная записка» says why |
+| [Производственный календарь](obrabotki/proizvodstvennyj-kalendar) | loads the calendar of working days and refuses any change by people on holidays, weekends, at lunch from 13 to 14, after 15:00 on the day before a holiday, and from a week before the May and New Year holidays to their end; workloads keep running, and only a «служебная записка» gets a change through |
 | [Курсы валют](obrabotki/kursy-valyut) | takes the rates of the Bank of Russia and costs every namespace by its requests, in roubles and other currencies |
 | [Дата запрета изменения](obrabotki/data-zapreta) | closes a period: objects created before a namespace's date can be changed only by the chief accountant |
 | [Удаление помеченных](obrabotki/udalenie-pomechennyh) | deletes what was marked for deletion, only when nothing refers to it, and says what does otherwise |

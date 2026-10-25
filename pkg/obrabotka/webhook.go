@@ -39,8 +39,9 @@ type WebhookOptions struct {
 // operations of admission, by their Russian names in &ПроверкаЗаполнения.
 var operations = map[string]admissionregistrationv1.OperationType{
 	"создание": admissionregistrationv1.Create, "изменение": admissionregistrationv1.Update,
-	"удаление": admissionregistrationv1.Delete, "create": admissionregistrationv1.Create,
-	"update": admissionregistrationv1.Update, "delete": admissionregistrationv1.Delete,
+	"удаление": admissionregistrationv1.Delete, "подключение": admissionregistrationv1.Connect,
+	"create": admissionregistrationv1.Create, "update": admissionregistrationv1.Update,
+	"delete": admissionregistrationv1.Delete, "connect": admissionregistrationv1.Connect,
 }
 
 var operationRu = map[admissionv1.Operation]string{
@@ -56,6 +57,9 @@ type webhookRule struct {
 	// namespaces whose objects are never checked, so the cluster can
 	// always be repaired
 	exempt []string
+	// every kind (Виды = "*"): only people are checked, the API server
+	// itself leaves Kubernetes' own users and service accounts out
+	all bool
 }
 
 func (ob *Obrabotka) webhook(method string) (*webhookRule, error) {
@@ -94,13 +98,17 @@ func (ob *Obrabotka) webhook(method string) (*webhookRule, error) {
 		if k = strings.TrimSpace(k); k == "" {
 			continue
 		}
+		if k == "*" {
+			rule.all = true
+			continue
+		}
 		g, err := ResolveGVK(k)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", ob.Name, err)
 		}
 		rule.kinds = append(rule.kinds, g)
 	}
-	if len(rule.kinds) == 0 {
+	if len(rule.kinds) == 0 && !rule.all {
 		return nil, fmt.Errorf("%s: в &ПроверкаЗаполнения не указаны Виды", ob.Name)
 	}
 	if len(rule.ops) == 0 {
@@ -148,7 +156,13 @@ func (r *Runner) validate(ctx context.Context, method string, ar *admissionv1.Ad
 		raw = ar.OldObject.Raw
 	}
 	u := &unstructured.Unstructured{}
-	if err := u.UnmarshalJSON(raw); err != nil {
+	if ar.Operation == admissionv1.Connect {
+		// exec, attach, port-forward: the check sees the pod connected to
+		u.SetAPIVersion("v1")
+		u.SetKind("Pod")
+		u.SetName(ar.Name)
+		u.SetNamespace(ar.Namespace)
+	} else if err := u.UnmarshalJSON(raw); err != nil {
 		return "", false
 	}
 	obj, err := ToLang(u)
@@ -164,6 +178,7 @@ func (r *Runner) validate(ctx context.Context, method string, ar *admissionv1.Ad
 	}
 	_ = info.Insert("Группы", groups)
 	_ = info.Insert("Подразделение", ar.Namespace)
+	_ = info.Insert("Подресурс", ar.SubResource)
 	var old bsl.Value = bsl.Undefined{}
 	if len(ar.OldObject.Raw) > 0 && ar.Operation == admissionv1.Update {
 		ou := &unstructured.Unstructured{}
@@ -244,6 +259,10 @@ func (s *webhookServer) register(ctx context.Context, caPEM []byte) error {
 		r, rule := c.r, c.rule
 		path := c.path()
 		var rules []admissionregistrationv1.RuleWithOperations
+		var conditions []admissionregistrationv1.MatchCondition
+		if rule.all {
+			rules, conditions = everything(rule.ops)
+		}
 		for _, k := range rule.kinds {
 			m, err := r.cluster.mapper.RESTMapping(k.GroupKind(), k.Version)
 			if err != nil {
@@ -265,6 +284,7 @@ func (s *webhookServer) register(ctx context.Context, caPEM []byte) error {
 				CABundle: caPEM,
 			},
 			Rules:                   rules,
+			MatchConditions:         conditions,
 			FailurePolicy:           &ignore,
 			SideEffects:             &none,
 			TimeoutSeconds:          &timeout,
@@ -280,6 +300,42 @@ func (s *webhookServer) register(ctx context.Context, caPEM []byte) error {
 		return err
 	}
 	return s.c.Apply(ctx, client.ApplyConfigurationFromUnstructured(u), client.FieldOwner("obrabotchik"), client.ForceOwnership)
+}
+
+// everything are the rules of a check of every kind: changes of any
+// object, and connections to pods (exec, attach, port-forward). Only
+// people are sent to the check: users and service accounts of Kubernetes
+// itself, «system:…», keep the cluster running whatever the check says.
+func everything(ops []admissionregistrationv1.OperationType) ([]admissionregistrationv1.RuleWithOperations, []admissionregistrationv1.MatchCondition) {
+	all := admissionregistrationv1.AllScopes
+	ns := admissionregistrationv1.NamespacedScope
+	var changes []admissionregistrationv1.OperationType
+	connect := false
+	for _, op := range ops {
+		if op == admissionregistrationv1.Connect {
+			connect = true
+		} else {
+			changes = append(changes, op)
+		}
+	}
+	var rules []admissionregistrationv1.RuleWithOperations
+	if len(changes) > 0 {
+		rules = append(rules, admissionregistrationv1.RuleWithOperations{
+			Operations: changes,
+			Rule:       admissionregistrationv1.Rule{APIGroups: []string{"*"}, APIVersions: []string{"*"}, Resources: []string{"*"}, Scope: &all},
+		})
+	}
+	if connect {
+		rules = append(rules, admissionregistrationv1.RuleWithOperations{
+			Operations: []admissionregistrationv1.OperationType{admissionregistrationv1.Connect},
+			Rule: admissionregistrationv1.Rule{APIGroups: []string{""}, APIVersions: []string{"v1"},
+				Resources: []string{"pods/exec", "pods/attach", "pods/portforward"}, Scope: &ns},
+		})
+	}
+	return rules, []admissionregistrationv1.MatchCondition{{
+		Name:       "lyudi",
+		Expression: `!request.userInfo.username.startsWith("system:")`,
+	}}
 }
 
 func toUnstructuredTyped(obj any) (*unstructured.Unstructured, error) {

@@ -31,7 +31,7 @@ spec:
       name: v1
       schema:
         openAPIV3Schema:
-          description: Производственный календарь страны на год и правила, когда выкатывать нельзя.
+          description: Производственный календарь страны на год и правила, когда людям нельзя ничего менять в кластере.
           properties:
             apiVersion:
               type: string
@@ -63,6 +63,32 @@ spec:
                       maximum: 24
                       minimum: 0
                       type: integer
+                    ДнейДоПраздников:
+                      default: 7
+                      description: За сколько дней до майских и новогодних всё замирает
+                      maximum: 31
+                      minimum: 0
+                      type: integer
+                    ОбедДоЧаса:
+                      default: 14
+                      description: Равен началу — без обеда
+                      maximum: 24
+                      minimum: 0
+                      type: integer
+                    ОбедСЧаса:
+                      default: 13
+                      description: Обед в рабочие дни по местному времени календаря
+                      maximum: 24
+                      minimum: 0
+                      type: integer
+                    ПередМайскими:
+                      default: true
+                      description: Давайте уже после майских
+                      type: boolean
+                    ПередНовымГодом:
+                      default: true
+                      description: Давайте уже после праздников
+                      type: boolean
                   type: object
                 Источник:
                   default: https://xmlcalendar.ru/data
