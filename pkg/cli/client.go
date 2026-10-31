@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/tym83/assnetes/pkg/bsl"
 	"github.com/tym83/assnetes/pkg/perevod"
@@ -62,7 +63,7 @@ func (o *options) client() (*clients, error) {
 	if o.kubeconfig != "" {
 		rules.ExplicitPath = o.kubeconfig
 	}
-	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, &clientcmd.ConfigOverrides{CurrentContext: o.context})
+	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, &clientcmd.ConfigOverrides{CurrentContext: o.context, AuthInfo: clientcmdapi.AuthInfo{Impersonate: o.as}})
 	cfg, err := cc.ClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("не найден список информационных баз (kubeconfig): %w", err)

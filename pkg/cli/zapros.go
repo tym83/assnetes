@@ -97,20 +97,24 @@ func newZaprosCommand(o *options) *cobra.Command {
 }
 
 func (o *options) query(ctx context.Context, text string, params map[string]bsl.Value) error {
-	c, err := o.client()
-	if err != nil {
-		return err
-	}
-	q, err := zapros.Parse(text)
-	if err != nil {
-		return err
-	}
-	t, err := zapros.Execute(q, &clusterData{ctx: ctx, c: c, cache: map[string][]bsl.Value{}}, params)
+	t, err := o.runQuery(ctx, text, params)
 	if err != nil {
 		return err
 	}
 	o.printTable(t)
 	return nil
+}
+
+func (o *options) runQuery(ctx context.Context, text string, params map[string]bsl.Value) (*bsl.ValueTable, error) {
+	c, err := o.client()
+	if err != nil {
+		return nil, err
+	}
+	q, err := zapros.Parse(text)
+	if err != nil {
+		return nil, err
+	}
+	return zapros.Execute(q, &clusterData{ctx: ctx, c: c, cache: map[string][]bsl.Value{}}, params)
 }
 
 func (o *options) printTable(t *bsl.ValueTable) {

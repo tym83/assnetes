@@ -204,6 +204,9 @@ func (o *options) applyOne(ctx context.Context, c *clients, obj *bsl.Map) error 
 	if m.Scope.Name() == meta.RESTScopeNameNamespace && u.GetNamespace() == "" {
 		u.SetNamespace(o.ns(c))
 	}
+	if err := o.signAuthor(ctx, c, u); err != nil {
+		return err
+	}
 	ri := c.resource(m, u.GetNamespace())
 	before, getErr := ri.Get(ctx, u.GetName(), metaGet)
 	if getErr != nil && !apierrors.IsNotFound(getErr) {
