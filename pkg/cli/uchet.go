@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/tym83/assnetes/pkg/bsl"
+	"github.com/tym83/assnetes/pkg/golos"
 	"github.com/tym83/assnetes/pkg/perevod"
 )
 
@@ -245,8 +246,15 @@ func (o *options) uchetJournal(ctx context.Context, name string) error {
 		entries, _, _ := unstructured.NestedSlice(u.Object, "spec", "Проводки")
 		first := []string{displayName(u), opDate(u), str("Содержание")}
 		tail := []string{str("Автор"), str("Утвердил"), state}
-		if p := str("Первичка"); p != "" && len(entries) == 0 {
-			rows = append(rows, append(append(first, "", "", "первичка"), tail...))
+		if len(entries) == 0 {
+			what := "—"
+			switch {
+			case str("Первичка") != "":
+				what = "первичка"
+			case str("Сторнирует") != "":
+				what = "сторно первички"
+			}
+			rows = append(rows, append(append(first, "", "", what), tail...))
 			continue
 		}
 		for j, e := range entries {
@@ -278,6 +286,8 @@ func opState(u *unstructured.Unstructured) string {
 		return "сторнирована «" + by + "»"
 	case taken:
 		return "✓ учтена"
+	case reason == "ждёт второй подписи":
+		return "… " + reason
 	}
 	return "✗ " + reason
 }
@@ -301,7 +311,7 @@ func (o *options) uchetApprove(ctx context.Context, names []string) error {
 		_, err := c.resource(&m, o.ns(c)).Patch(ctx, perevod.Name(n), types.MergePatchType, patch, metav1.PatchOptions{FieldManager: fieldManager})
 		if err != nil {
 			failed++
-			o.reportErrorVars(err, nil)
+			o.reportErrorVars(err, golos.Vars{"Вид": "Операция", "Имя": n})
 			continue
 		}
 		fmt.Fprintf(o.out, "%s Операция «%s» утверждена: вторая подпись — %s\n", green(o.tty, "✓"), n, me)
@@ -326,6 +336,9 @@ func (o *options) uchetStorno(ctx context.Context, name, date, content string) e
 		return fmt.Errorf("операция «%s» не найдена", name)
 	}
 	origName := displayName(orig)
+	if _, err := c.resource(&m, o.ns(c)).Get(ctx, perevod.Name("Сторно "+origName), metaGet); err == nil {
+		return fmt.Errorf("операцию «%s» уже сторнирует «Сторно %s»: дважды не сторнируют", origName, origName)
+	}
 	spec, _, _ := unstructured.NestedMap(orig.Object, "spec")
 	entries := bsl.NewArray()
 	list, _ := spec["Проводки"].([]any)
@@ -388,10 +401,15 @@ func (o *options) uchetClose(ctx context.Context, name, date string) error {
 	m, _ := o.uchetKind(c, "ГлавнаяКнига")
 	patch, _ := json.Marshal(map[string]any{"spec": map[string]any{"ДатаЗапрета": date}})
 	if _, err := c.resource(&m, ledger.GetNamespace()).Patch(ctx, ledger.GetName(), types.MergePatchType, patch, metav1.PatchOptions{FieldManager: fieldManager}); err != nil {
-		o.reportErrorVars(err, nil)
+		o.reportErrorVars(err, golos.Vars{"Вид": "ГлавнаяКнига", "Имя": displayName(ledger)})
 		return fmt.Errorf("период не закрыт")
 	}
-	fmt.Fprintf(o.out, "%s Книга «%s»: период по %s закрыт. Операции раньше этой даты больше не принимаются.\n", green(o.tty, "✓"), displayName(ledger), date)
+	was, _, _ := unstructured.NestedString(ledger.Object, "spec", "ДатаЗапрета")
+	if was != "" && date < was[:min(len(was), 10)] {
+		fmt.Fprintf(o.out, "%s Книга «%s»: период после %s снова открыт.\n", green(o.tty, "✓"), displayName(ledger), date)
+		return nil
+	}
+	fmt.Fprintf(o.out, "%s Книга «%s»: период по %s закрыт. Операции этой датой и раньше больше не принимаются.\n", green(o.tty, "✓"), displayName(ledger), date)
 	o.say("zakrytie-perioda", nil)
 	return nil
 }
@@ -462,8 +480,8 @@ func (o *options) uchetOSV(ctx context.Context, name string) error {
 	}
 	closed, _, _ := unstructured.NestedString(ledger.Object, "spec", "ДатаЗапрета")
 	period := "за всё время"
-	if closed != "" {
-		period = "открытый период с " + closed
+	if t, err := time.Parse("2006-01-02", closed); err == nil {
+		period = "открытый период с " + t.AddDate(0, 0, 1).Format("02.01.2006")
 	}
 	fmt.Fprintln(o.out, bold(o.tty, "Оборотно-сальдовая ведомость книги «"+displayName(ledger)+"», "+period))
 	cols := []string{"СальдоНачальноеДт", "СальдоНачальноеКт", "ОборотДт", "ОборотКт", "СальдоКонечноеДт", "СальдоКонечноеКт"}
