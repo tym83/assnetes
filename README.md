@@ -11,7 +11,7 @@ Assnetes is a Kubernetes distribution for accounting departments. Everything peo
 
 It is a joke that works: the API server, etcd and every controller are real, and so is what they do.
 
-> **Status:** early, and working on a test cluster: the language, manifests, `1сctl`, the runtime of operators with five general operators, the operators of 1C:Enterprise and 1C-Bitrix, the price list of packages, the query language and the GUI. 1C itself is tested against a stand-in of its server: the platform may not be redistributed. See [the design](docs/design.md).
+> **Status:** early, and working on a test cluster: the language, manifests, `1сctl`, the runtime of operators with six general operators, BukhOps, the operators of 1C:Enterprise and 1C-Bitrix, the price list of packages, the query language and the GUI. 1C itself is tested against a stand-in of its server: the platform may not be redistributed. See [the design](docs/design.md).
 
 > Assnetes is an unofficial parody. It is not made, endorsed or supported by 1C Company. «1С», «1С:Предприятие» and the names of 1C products are trademarks of 1C Company; Assnetes ships none of its software: you bring your own distribution of the platform and its license.
 
@@ -70,7 +70,7 @@ An operator is an «обработка»: a module and, if it brings kinds of it
 
 The runtime, `obrabotchik`, does the rest: watches and queues, server-side apply, owners, finalizers, status, events, admission webhooks under a certificate of its own, schedules and leader election. Modules see the cluster through `Кластер`, with HTTP that checks certificates, an XML reader and the language's JSON.
 
-Five operators come with the distribution, in [obrabotki](obrabotki):
+Six operators come with the distribution, in [obrabotki](obrabotki):
 
 | Operator | What it does |
 |---|---|
@@ -79,6 +79,21 @@ Five operators come with the distribution, in [obrabotki](obrabotki):
 | [Дата запрета изменения](obrabotki/data-zapreta) | closes a period: objects created before a namespace's date can be changed only by the chief accountant |
 | [Удаление помеченных](obrabotki/udalenie-pomechennyh) | deletes what was marked for deletion, only when nothing refers to it, and says what does otherwise |
 | [Акт сверки](obrabotki/akt-sverki) | compares the cluster with manifests in Git and writes up a reconciliation statement |
+| [Главная книга](obrabotki/glavnaya-kniga) | BukhOps: keeps the cluster by the books — a journal of operations with entries Dr/Cr, two signatures and storno — publishes the balances to Flux as an `ExternalArtifact` and reconciles the cluster against the books; see [BukhOps](docs/bukhops.md) |
+
+## BukhOps
+
+GitOps where the source of truth is the journal of business operations rather than commits: an operation needs a second signature, is never changed or deleted, is undone by storno, and is refused in a closed period. Flux applies what the books say.
+
+```console
+$ 1сctl провести --файл bp-000002.bsl
+$ 1сctl --от-имени tamara.petrovna учёт утвердить БП-000002
+$ 1сctl учёт сторно БП-000003
+$ 1сctl учёт закрыть-период 2026-09-30
+$ 1сctl учёт осв
+```
+
+See [BukhOps](docs/bukhops.md).
 
 ## Packages
 
