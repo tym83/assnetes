@@ -94,6 +94,12 @@ var Kinds = []Kind{
 	{Kind: "ProductionCalendar", APIVersion: Group + "/v1", Ru: "ПроизводственныйКалендарь", Plural: "ПроизводственныеКалендари", Resource: "productioncalendars", Native: true, Gender: 'm'},
 	{Kind: "CurrencyRates", APIVersion: Group + "/v1", Ru: "КурсыВалют", Plural: "КурсыВалют", Resource: "currencyrates", Native: true, Gender: 'p'},
 	{Kind: "ReconciliationAct", APIVersion: Group + "/v1", Ru: "АктСверки", Plural: "АктыСверки", Resource: "reconciliationacts", Native: true, Gender: 'm'},
+	{Kind: "Ledger", APIVersion: Group + "/v1", Ru: "ГлавнаяКнига", Plural: "ГлавныеКниги", Aliases: []string{"Книга", "Книги"}, Resource: "ledgers", Namespaced: true, Native: true, Gender: 'f'},
+	{Kind: "Operation", APIVersion: Group + "/v1", Ru: "Операция", Plural: "Операции", Aliases: []string{"ХозяйственнаяОперация", "ХозяйственныеОперации"}, Resource: "operations", Namespaced: true, Native: true, Gender: 'f'},
+
+	// Kinds of Flux that BukhOps drives.
+	{Kind: "ExternalArtifact", APIVersion: "source.toolkit.fluxcd.io/v1", Ru: "Выписка", Plural: "Выписки", Resource: "externalartifacts", Namespaced: true, Gender: 'f'},
+	{Kind: "Kustomization", APIVersion: "kustomize.toolkit.fluxcd.io/v1", Ru: "ГрупповоеПерепроведение", Plural: "ГрупповыеПерепроведения", Resource: "kustomizations", Namespaced: true, Gender: 'n'},
 }
 
 // field pairs: English, Russian. One Russian word may stand for one field
@@ -154,6 +160,9 @@ var fieldPairs = [][2]string{
 	{"volumeClaimTemplates", "ШаблоныЗаявок"}, {"serviceName", "ИмяУслуги"}, {"podManagementPolicy", "ПолитикаЗапускаПодов"},
 	{"fsGroup", "ГруппаФайлов"}, {"runAsUser", "ПользовательЗапуска"}, {"runAsGroup", "ГруппаЗапуска"},
 	{"metrics", "Показатели"}, {"averageUtilization", "СредняяЗагрузка"},
+	{"sourceRef", "СсылкаНаИсточник"}, {"interval", "Интервал"}, {"prune", "Подчищать"},
+	{"targetNamespace", "ЦелевоеПодразделение"}, {"lastAppliedRevision", "РазнесённаяРевизия"},
+	{"artifact", "Артефакт"}, {"revision", "Ревизия"}, {"digest", "Дайджест"},
 	{"verbs", "Действия"}, {"apiGroups", "ГруппыAPI"}, {"apiGroup", "ГруппаAPI"}, {"subjects", "Субъекты"}, {"roleRef", "СсылкаНаРоль"},
 }
 
