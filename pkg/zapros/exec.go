@@ -231,6 +231,8 @@ func (c *ctx) load(s Source, data Data) ([]row, error) {
 		objs, err = data.Table(s.Path[1])
 	case len(s.Path) == 3 && strings.EqualFold(s.Path[0], "РегистрНакопления"):
 		objs, err = register(data, s.Path[1], s.Path[2])
+	case len(s.Path) == 3 && strings.EqualFold(s.Path[0], "РегистрБухгалтерии"):
+		objs, err = accountingRegister(data, s.Path[1], s.Path[2])
 	default:
 		return nil, fmt.Errorf("Ошибка в тексте запроса: неизвестный источник «%s»", strings.Join(s.Path, "."))
 	}
