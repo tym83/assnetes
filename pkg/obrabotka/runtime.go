@@ -85,6 +85,7 @@ func NewRunner(ob *Obrabotka, mgr manager.Manager) (*Runner, error) {
 	registerHTTP(it)
 	registerXML(it)
 	registerHelpers(it)
+	registerVypiska(it, r.cluster)
 	zapros.Register(it, r.cluster)
 	r.it = it
 	r.cluster.ctx = context.Background()
