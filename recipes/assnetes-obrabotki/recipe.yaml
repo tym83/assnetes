@@ -3,7 +3,7 @@ kind: Recipe
 metadata:
   name: assnetes-obrabotki
   annotations:
-    kubepkg.dev/description: "Обработки 1Ж:Оркестратора 8: производственный календарь, курсы валют, дата запрета изменения, удаление помеченных, акт сверки"
+    kubepkg.dev/description: "Обработки 1Ж:Оркестратора 8: производственный календарь, курсы валют, дата запрета изменения, удаление помеченных, акт сверки, главная книга БухОпс"
     kubepkg.dev/home: https://github.com/tym83/assnetes
 spec:
   version: 0.1.0
@@ -21,6 +21,8 @@ spec:
       - productioncalendars.xn--80ajopdiccfkc.xn--90a0bg
       - currencyrates.xn--80ajopdiccfkc.xn--90a0bg
       - reconciliationacts.xn--80ajopdiccfkc.xn--90a0bg
+      - ledgers.xn--80ajopdiccfkc.xn--90a0bg
+      - operations.xn--80ajopdiccfkc.xn--90a0bg
     rollback:
       safe: true
     variants:

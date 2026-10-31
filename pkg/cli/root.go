@@ -20,6 +20,7 @@ var Version = "0.0.0-dev"
 type options struct {
 	kubeconfig  string
 	context     string
+	as          string
 	namespace   string
 	allNS       bool
 	output      string
@@ -53,12 +54,14 @@ func NewRootCommand() *cobra.Command {
 	f.StringVar(&o.output, "вывод", "", "таблица, bsl, yaml, json или api (YAML как в API, без перевода)")
 	f.BoolVar(&o.quiet, "тихо", false, "без комментариев бухгалтерии")
 	f.BoolVar(&o.director, "я-директор", false, "без очереди и без обеда")
+	f.StringVar(&o.as, "от-имени", "", "действовать от имени другого пользователя (impersonation): подпись ставит он")
 	// English spellings for muscle memory and scripts.
 	f.StringVar(&o.context, "context", "", "")
 	f.StringVarP(&o.namespace, "namespace", "n", "", "")
 	f.BoolVarP(&o.allNS, "all-namespaces", "A", false, "")
 	f.StringVarP(&o.output, "output", "o", "", "")
-	for _, n := range []string{"context", "namespace", "all-namespaces", "output"} {
+	f.StringVar(&o.as, "as", "", "")
+	for _, n := range []string{"context", "namespace", "all-namespaces", "output", "as"} {
 		_ = f.MarkHidden(n)
 	}
 
@@ -76,6 +79,7 @@ func NewRootCommand() *cobra.Command {
 		newKonfiguratorCommand(o),
 		newZaprosCommand(o),
 		newOSVCommand(o),
+		newUchetCommand(o),
 		newGuiCommand(o),
 		&cobra.Command{
 			Use:     "версия",

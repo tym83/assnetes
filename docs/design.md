@@ -37,7 +37,7 @@ GUI                    1сctl                  voice (personas, calendar)
 the 1C language in Go: manifests · cluster queries · runtime of operators
 ──────────────────────────────────────────────────────────────────────
 operators in the 1C language: platform, Accounting, Trade, CRM, Bitrix,
-and five general-purpose ones
+and six general-purpose ones
 ──────────────────────────────────────────────────────────────────────
 kubepkg, embedded under its own API group, and the «Прайс-лист» repository
 ──────────────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ An operator is an «обработка»: a directory with a module and, for kin
 
 `obrabotchik` runs operators with controller-runtime: one interpreter per operator, one call at a time; status written back when the module changed it; a refusal (`Отказ = Истина`) becomes a warning event with what the module said and a retry; webhooks are served under a self-signed certificate registered with `failurePolicy: Ignore`, so a broken operator never stops the cluster. Modules get `Кластер` (Получить, Выбрать, Провести with an owner, Удалить, ПометитьНаУдаление, ЗаписатьСостояние, ЗаписатьСобытие, ВыполнитьВПоде, ПрочитатьСекрет), `Журнал`, `HTTPСоединение`, `ЧтениеXML`, `ДанныеСовпадают`, `РазобратьКоличество`, `ВыполнитьМанифест`, `МестноеВремя`.
 
-The five general-purpose operators are in the [README](../README.md).
+The six general-purpose operators are in the [README](../README.md).
 
 ## Packages and the operators of the products
 
@@ -88,7 +88,7 @@ kubepkg is embedded through its Go libraries under the group «пакеты.бу
 | `1c-upravlenie-torgovlej` | 1C:Trade Management | template brought by the user |
 | `1c-crm` | 1C:CRM | template brought by the user |
 | `1c-bitrix`, `bitrix24` | 1C-Bitrix site management, Bitrix24 box | public trials |
-| `assnetes` | the five operators, the GUI, the voice | ours |
+| `assnetes` | the six operators, the GUI, the voice | ours |
 
 Without a platform, a package still installs, and its infobases wait with a status that says what is missing and where to get it.
 

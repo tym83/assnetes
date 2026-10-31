@@ -146,6 +146,10 @@ func tableFor(kind string, items []unstructured.Unstructured, withNS bool, nsNam
 		extra = []string{"ВЕРСИЯ"}
 	case "Service":
 		extra = []string{"ТИП", "АДРЕС"}
+	case "Operation":
+		extra = []string{"ДАТА", "СОДЕРЖАНИЕ", "АВТОР", "УТВЕРДИЛ"}
+	case "Ledger":
+		extra = []string{"РЕВИЗИЯ", "ЗАКРЫТО ПО"}
 	}
 	header = append(header, extra...)
 	header = append(header, "СОСТОЯНИЕ", "ВОЗРАСТ")
@@ -193,6 +197,25 @@ func tableFor(kind string, items []unstructured.Unstructured, withNS bool, nsNam
 			t, _, _ := unstructured.NestedString(u.Object, "spec", "type")
 			ip, _, _ := unstructured.NestedString(u.Object, "spec", "clusterIP")
 			row = append(row, t, ip)
+		case "Operation":
+			str := func(k string) string { v, _, _ := unstructured.NestedString(u.Object, "spec", k); return v }
+			row = append(row, opDate(u), str("Содержание"), str("Автор"), str("Утвердил"))
+			state = opState(u)
+		case "Ledger":
+			rev, _, _ := unstructured.NestedString(u.Object, "status", "Ревизия")
+			closed, _, _ := unstructured.NestedString(u.Object, "spec", "ДатаЗапрета")
+			row = append(row, rev, closed)
+			posted, _, _ := unstructured.NestedBool(u.Object, "status", "Разнесено")
+			agreed, _, _ := unstructured.NestedBool(u.Object, "status", "Сошлось")
+			diffs, _, _ := unstructured.NestedInt64(u.Object, "status", "Расхождений")
+			switch {
+			case !posted:
+				state = "○ разносится"
+			case !agreed:
+				state = fmt.Sprintf("! расхождений: %d", diffs)
+			default:
+				state = "✓ сходится с кластером"
+			}
 		}
 		if u.GetDeletionTimestamp() != nil {
 			state = "✗ помечен на удаление"

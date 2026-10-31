@@ -33,7 +33,7 @@ while read -r package name namespace operators; do
   [[ -s "${out}/vidy.yaml" ]] || rm "${out}/vidy.yaml"
   echo "${package}: ${operators}"
 done <<'LIST'
-assnetes-obrabotki obrabotchik assnetes-system proizvodstvennyj-kalendar,kursy-valyut,data-zapreta,udalenie-pomechennyh,akt-sverki
+assnetes-obrabotki obrabotchik assnetes-system proizvodstvennyj-kalendar,kursy-valyut,data-zapreta,udalenie-pomechennyh,akt-sverki,glavnaya-kniga
 1c-bitrix obrabotchik-bitrix assnetes-bitrix bitrix
 1c-predpriyatie obrabotchik-1c assnetes-1c 1c-predpriyatie
 LIST
