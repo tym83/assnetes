@@ -21,6 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -176,7 +177,7 @@ func (cl *Cluster) publish(ledgerV, docsV bsl.Value, label string) (bsl.Value, e
 		"apiVersion": ledger.GetAPIVersion(), "kind": ledger.GetKind(), "name": name,
 	}, "spec", "sourceRef")
 	if err := cl.c.Apply(cl.ctx, client.ApplyConfigurationFromUnstructured(ea), client.FieldOwner(cl.manager), client.ForceOwnership); err != nil {
-		if strings.Contains(err.Error(), "no matches for kind") {
+		if meta.IsNoMatchError(err) || apierrors.IsNotFound(err) {
 			return nil, fmt.Errorf("Flux не установлен: в кластере нет вида ExternalArtifact (нужен Flux 2.7 или новее)")
 		}
 		return nil, fmt.Errorf("выписка не объявлена: %w", err)
