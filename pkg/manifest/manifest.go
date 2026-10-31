@@ -18,6 +18,9 @@ type Options struct {
 	Message func(string)
 	// MaxSteps bounds the statements a manifest may execute.
 	MaxSteps int64
+	// Define adds what the caller gives manifests besides the language:
+	// the books give Сальдо().
+	Define func(*bsl.Interp)
 }
 
 // Result is what a manifest posted: objects in the form of the API, in the
@@ -47,6 +50,9 @@ func NewInterp(res *Result, opts Options) *bsl.Interp {
 		_ = params.Insert(k, v)
 	}
 	it.SetGlobal(params.Fixed(), "Параметры", "Parameters")
+	if opts.Define != nil {
+		opts.Define(it)
+	}
 
 	it.Define(func(_ *bsl.Interp, args []*bsl.Ref) (bsl.Value, error) {
 		for i := range args {
