@@ -25,9 +25,9 @@ type ledgerInfo struct {
 }
 
 // balancesAndTurnovers is РегистрБухгалтерии.Хозрасчётный.ОстаткиИОбороты
-// for the open period of every ledger: what was posted before the date of
-// the closed period is the opening balance, what was posted since is the
-// turnover. Only operations the books took count, and a сторно counts as
+// for the open period of every ledger: what was posted on or before the
+// date of the closed period is the opening balance, what was posted after
+// it is the turnover. Only operations the books took count, and a сторно counts as
 // what it is: the same entries with a minus, which takes them back out of
 // the turnover.
 func balancesAndTurnovers(data Data) ([]bsl.Value, error) {
@@ -94,7 +94,7 @@ func balancesAndTurnovers(data Data) ([]bsl.Value, error) {
 			continue
 		}
 		date, _ := deep(op, "Спецификация", "Дата")
-		opening := li.closed != "" && day(date) < li.closed
+		opening := li.closed != "" && day(date) <= li.closed
 		entries, _ := deep(op, "Спецификация", "Проводки")
 		it, ok := entries.(bsl.Iterable)
 		if !ok {
