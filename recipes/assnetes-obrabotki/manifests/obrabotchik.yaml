@@ -54,6 +54,7 @@ spec:
             - /obrabotki/data-zapreta
             - /obrabotki/udalenie-pomechennyh
             - /obrabotki/akt-sverki
+            - /obrabotki/glavnaya-kniga
           resources:
             requests:
               cpu: 50m
@@ -63,6 +64,8 @@ spec:
           ports:
             - name: proverki
               containerPort: 9443
+            - name: vypiski
+              containerPort: 9090
           livenessProbe:
             httpGet:
               path: /healthz
@@ -85,3 +88,7 @@ spec:
   ports:
     - port: 443
       targetPort: 9443
+      name: proverki
+    - name: vypiski
+      port: 9090
+      targetPort: 9090

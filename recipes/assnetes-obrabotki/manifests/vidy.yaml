@@ -352,3 +352,258 @@ spec:
       storage: true
       subresources:
         status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: ГлавнаяКнига
+  name: ledgers.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: Ledger
+    listKind: LedgerList
+    plural: ledgers
+    shortNames:
+      - kniga
+    singular: ledger
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.Ревизия
+          name: Ревизия
+          type: string
+        - jsonPath: .status.Разнесено
+          name: Разнесено
+          type: boolean
+        - jsonPath: .status.Сошлось
+          name: Сошлось
+          type: boolean
+        - jsonPath: .status.Расхождений
+          name: Расхождений
+          type: integer
+        - jsonPath: .spec.ДатаЗапрета
+          name: Дата запрета
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: 'Главная книга БухОпс: источник истины кластера. Объекты кластера — остатки по счетам, которые сложились из учтённых операций журнала; книга публикует их Flux как выписку (ExternalArtifact), а групповое перепроведение (Kustomization) разносит выписку по кластеру.'
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                ДатаЗапрета:
+                  description: Дата запрета изменения данных. Операции с более ранней датой не принимаются.
+                  pattern: ^\d{4}-\d{2}-\d{2}
+                  type: string
+                ИнтервалРазноски:
+                  default: 5m
+                  description: Как часто Flux перепроводит кластер по выписке
+                  type: string
+                ПериодичностьСверкиМинут:
+                  default: 1
+                  minimum: 1
+                  type: integer
+                ПланСчетов:
+                  items:
+                    properties:
+                      Вид:
+                        default: Активный
+                        enum:
+                          - Активный
+                          - Пассивный
+                          - АктивноПассивный
+                        type: string
+                      Код:
+                        pattern: ^[0-9А-Яа-яЁё.]+$
+                        type: string
+                      Наименование:
+                        type: string
+                    required:
+                      - Код
+                    type: object
+                  type: array
+                Подписанты:
+                  description: 'Кто ставит вторую подпись: пользователи кластера. Пусто — любой, кроме автора операции.'
+                  items:
+                    type: string
+                  type: array
+                Подразделение:
+                  description: Куда проводятся документы, у которых подразделение не указано
+                  type: string
+              required:
+                - ПланСчетов
+              type: object
+            status:
+              properties:
+                Выписка:
+                  type: string
+                ДатаСверки:
+                  type: string
+                НеУчтеноОпераций:
+                  type: integer
+                Остатки:
+                  items:
+                    properties:
+                      Сальдо:
+                        type: number
+                      Счёт:
+                        type: string
+                    type: object
+                  type: array
+                Разнесено:
+                  type: boolean
+                Расхождений:
+                  type: integer
+                Расхождения:
+                  items:
+                    properties:
+                      ВКластере:
+                        type: string
+                      Документ:
+                        type: string
+                      ПоУчёту:
+                        type: string
+                      Поле:
+                        type: string
+                    type: object
+                  type: array
+                Ревизия:
+                  type: string
+                Сообщение:
+                  type: string
+                Сошлось:
+                  type: boolean
+                УчтеноОпераций:
+                  type: integer
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    xn--80ajopdiccfkc.xn--90a0bg/naimenovanie: Операция
+  name: operations.xn--80ajopdiccfkc.xn--90a0bg
+spec:
+  group: xn--80ajopdiccfkc.xn--90a0bg
+  names:
+    categories:
+      - assnetes
+    kind: Operation
+    listKind: OperationList
+    plural: operations
+    shortNames:
+      - op
+    singular: operation
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.Дата
+          name: Дата
+          type: string
+        - jsonPath: .spec.Содержание
+          name: Содержание
+          type: string
+        - jsonPath: .spec.Автор
+          name: Автор
+          type: string
+        - jsonPath: .spec.Утвердил
+          name: Утвердил
+          type: string
+        - jsonPath: .status.Учтена
+          name: Учтена
+          type: boolean
+        - jsonPath: .status.Причина
+          name: Причина
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Возраст
+          type: date
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: 'Хозяйственная операция журнала БухОпс: проводки Дт/Кт и, при необходимости, первичный документ — манифест на языке 1С. Операции не меняют и не удаляют: ошибку исправляет сторно.'
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                Автор:
+                  description: Кто составил операцию; 1сctl заполняет сам
+                  type: string
+                Дата:
+                  pattern: ^\d{4}-\d{2}-\d{2}
+                  type: string
+                Книга:
+                  type: string
+                Первичка:
+                  description: Первичный документ — манифест на языке 1С; Сальдо("01/Витрина") в нём — остаток по счёту
+                  type: string
+                Проводки:
+                  items:
+                    properties:
+                      Дт:
+                        type: string
+                      Кт:
+                        type: string
+                      Содержание:
+                        type: string
+                      Сумма:
+                        type: number
+                    required:
+                      - Дт
+                      - Кт
+                      - Сумма
+                    type: object
+                  type: array
+                Содержание:
+                  type: string
+                Сторнирует:
+                  description: Какую операцию отменяет эта
+                  type: string
+                Утвердил:
+                  description: Вторая подпись
+                  type: string
+              required:
+                - Дата
+                - Книга
+              type: object
+            status:
+              properties:
+                Отпечаток:
+                  type: string
+                Причина:
+                  type: string
+                СторнированаОперацией:
+                  type: string
+                Учтена:
+                  type: boolean
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}

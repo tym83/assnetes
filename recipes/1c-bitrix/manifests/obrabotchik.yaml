@@ -59,6 +59,8 @@ spec:
           ports:
             - name: proverki
               containerPort: 9443
+            - name: vypiski
+              containerPort: 9090
           livenessProbe:
             httpGet:
               path: /healthz
@@ -81,3 +83,7 @@ spec:
   ports:
     - port: 443
       targetPort: 9443
+      name: proverki
+    - name: vypiski
+      port: 9090
+      targetPort: 9090
